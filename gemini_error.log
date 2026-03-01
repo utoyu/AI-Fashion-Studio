@@ -1,0 +1,29 @@
+Error: Gemini API Error: 429 - {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+    "status": "RESOURCE_EXHAUSTED"
+  }
+}
+
+    at POST (D:\AI-Fashion-Studio\AI-Fashion-Studio\.next\dev\server\chunks\[root-of-the-server]__2664e584._.js:298:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async AppRouteRouteModule.do (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37866)
+    at async AppRouteRouteModule.handle (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45156)
+    at async responseGenerator (D:\AI-Fashion-Studio\AI-Fashion-Studio\.next\dev\server\chunks\node_modules__pnpm_e6862628._.js:23789:38)
+    at async AppRouteRouteModule.handleResponse (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:191938)
+    at async handleResponse (D:\AI-Fashion-Studio\AI-Fashion-Studio\.next\dev\server\chunks\node_modules__pnpm_e6862628._.js:23852:32)
+    at async Module.handler (D:\AI-Fashion-Studio\AI-Fashion-Studio\.next\dev\server\chunks\node_modules__pnpm_e6862628._.js:23905:13)
+    at async DevServer.renderToResponseWithComponentsImpl (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\base-server.js:1442:9)
+    at async DevServer.renderPageComponent (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\base-server.js:1494:24)
+    at async DevServer.renderToResponseImpl (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\base-server.js:1544:32)
+    at async DevServer.pipeImpl (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\base-server.js:1038:25)
+    at async NextNodeServer.handleCatchallRenderRequest (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\next-server.js:395:17)
+    at async DevServer.handleRequestImpl (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\base-server.js:929:17)
+    at async D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\dev\next-dev-server.js:387:20
+    at async Span.traceAsyncFn (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\dev\next-dev-server.js:383:24)
+    at async invokeRender (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\lib\router-server.js:248:21)
+    at async handleRequest (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\lib\router-server.js:447:24)
+    at async requestHandlerImpl (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\lib\router-server.js:496:13)
+    at async Server.requestListener (D:\AI-Fashion-Studio\AI-Fashion-Studio\node_modules\.pnpm\next@16.1.6_react-dom@19.2.3_react@19.2.3__react@19.2.3\node_modules\next\dist\server\lib\start-server.js:226:13)

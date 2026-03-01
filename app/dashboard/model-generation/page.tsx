@@ -10,6 +10,7 @@ import {
   Check,
   Loader2,
   ArrowRight,
+  Wand2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UploadDropzone } from "@/components/dashboard/upload-dropzone"
@@ -50,7 +51,10 @@ const sampleResults = [
 ]
 
 export default function ModelGenerationPage() {
-  const [file, setFile] = useState<File | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState("Business Menswear")
+  const [marketingCopy, setMarketingCopy] = useState("")
+
+  const [files, setFiles] = useState<File[]>([])
   const [selectedModel, setSelectedModel] = useState("asian-female")
   const [selectedBg, setSelectedBg] = useState("studio-white")
   const [selectedPose, setSelectedPose] = useState("standing")
@@ -58,17 +62,142 @@ export default function ModelGenerationPage() {
   const [results, setResults] = useState<string[]>([])
   const [activeResult, setActiveResult] = useState(0)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
+  const [imagePrompt, setImagePrompt] = useState("")
+  const [hiddenEnglishPrompt, setHiddenEnglishPrompt] = useState("")
+  const [isLoadingPrompt, setIsLoadingPrompt] = useState(false)
+  const [selectedPromptModel, setSelectedPromptModel] = useState("mock")
 
-  const handleGenerate = useCallback(() => {
-    if (!file) return
+  const handleGeneratePrompt = useCallback(async () => {
+    if (files.length === 0) {
+      alert("请先上传至少一张商品图！");
+      return;
+    }
+
+    setIsLoadingPrompt(true);
+    setImagePrompt("");
+    setHiddenEnglishPrompt("");
+
+    try {
+      const model = modelStyles.find(m => m.id === selectedModel);
+      const bg = backgrounds.find(b => b.id === selectedBg);
+      const pose = poses.find(p => p.id === selectedPose);
+
+      const resp = await fetch('/api/generate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          garmentUrl: "/images/sample-dress.jpg", // Using local mock file for Phase 2 API demonstration
+          model: model?.label,
+          bg: bg?.label,
+          pose: pose?.label,
+          category: selectedCategory,
+          promptModel: selectedPromptModel
+        })
+      });
+
+      const data = await resp.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to generate prompt");
+      }
+
+      const formatPrompt = (promptData: any) => {
+        if (!promptData) return "";
+        let data = promptData;
+
+        if (typeof promptData === "string") {
+          try {
+            data = JSON.parse(promptData);
+          } catch (e) {
+            return promptData; // Not valid JSON string, return as is
+          }
+        }
+
+        if (typeof data !== "object" || data === null) {
+          return String(data);
+        }
+
+        const keyMap: Record<string, string> = {
+          "scene": "场景",
+          "sceneDescription": "场景描述",
+          "场景描述": "场景描述",
+          "model": "模特",
+          "modelFeatures": "模特特征",
+          "模特特征": "模特特征",
+          "pose": "姿态",
+          "garmentFeatures": "服装特征",
+          "服装特点": "服装特点",
+          "fabricDetails": "面料细节",
+          "edgesAndStitching": "边缘与缝线",
+          "lighting": "光影",
+          "accessories": "配饰",
+          "camera": "拍摄技巧",
+          "拍摄技巧": "拍摄技巧",
+          "prompt": "整体描述",
+          "visualTexture": "画面质感",
+          "画面质感": "画面质感",
+          "depthOfField": "景深处理",
+          "景深处理": "景深处理"
+        };
+
+        return Object.entries(data).map(([key, value]) => {
+          const translatedKey = keyMap[key] || key;
+          const cleanValue = typeof value === 'object' ? JSON.stringify(value) : String(value).trim();
+          return `${translatedKey}: ${cleanValue}`;
+        }).join("\n");
+      };
+
+      const chineseFormatted = formatPrompt(data.chinesePrompt);
+      const englishFormatted = formatPrompt(data.englishPrompt);
+
+      const generatedStr = `[系统生成 Prompt]\n模型: ${model?.label} (${model?.desc})\n场景: ${bg?.label}\n姿态: ${pose?.label}\n风格: ${selectedCategory === "Business Menswear" ? "商务通勤男装" : "户外运动装备"}\n\n[展示用中文描述]\n${chineseFormatted}\n\n[底层图像生成指令 (English)]\n${englishFormatted}`;
+
+      setImagePrompt(generatedStr);
+      setHiddenEnglishPrompt(typeof data.englishPrompt === 'object' ? JSON.stringify(data.englishPrompt) : data.englishPrompt);
+    } catch (err: any) {
+      console.error(err);
+      alert("Error generating prompt: " + err.message);
+    } finally {
+      setIsLoadingPrompt(false);
+    }
+  }, [files, selectedModel, selectedBg, selectedPose, selectedCategory, selectedPromptModel]);
+
+  const handleGenerate = useCallback(async () => {
+    if (files.length === 0) return
+    if (!imagePrompt) {
+      alert("请先点击『生成 Prompt』构建图像描述！");
+      return;
+    }
+
     setGenerating(true)
     setResults([])
-    // Simulate AI generation
-    setTimeout(() => {
-      setResults(sampleResults)
-      setGenerating(false)
-    }, 3000)
-  }, [file])
+    setMarketingCopy("")
+
+    try {
+      // Mock Data Generation Flow (Phase 1)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      const mockImages = [
+        "/images/mock-suit01.jpg",
+        "/images/mock-suit02.jpg",
+        "/images/mock-suit03.jpg",
+        "/images/mock-suit04.jpg",
+        "/images/mock-suit05.jpg",
+      ];
+
+      // Select 3 random unique images
+      const shuffled = [...mockImages].sort(() => 0.5 - Math.random());
+      const selectedMockImages = shuffled.slice(0, 3);
+
+      setResults(selectedMockImages);
+      setMarketingCopy("✨ 灰咖啡色雅致格纹，尽显年轻新郎儒雅气质。90%绵羊毛高含毛面料，0.15cm拱针拱线，品质之选。婚庆典礼、高级宴会，助您定格非凡时刻。#婚庆西服 #新郎 #高级定制");
+      setActiveResult(0);
+    } catch (e: any) {
+      console.error(e);
+      alert("Error: " + e.message);
+    } finally {
+      setGenerating(false);
+    }
+  }, [files, selectedCategory, imagePrompt])
 
   const selectedModelData = modelStyles.find((m) => m.id === selectedModel)
 
@@ -94,13 +223,43 @@ export default function ModelGenerationPage() {
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Left: Upload + Settings */}
             <div className="flex flex-col gap-6">
+              {/* Business Line */}
+              <div>
+                <h2 className="mb-3 text-sm font-semibold text-foreground">第零步：选择业务线</h2>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "Business Menswear", label: "商务通勤男装" },
+                    { id: "Outdoor Gear", label: "户外运动装备" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={cn(
+                        "rounded-lg border px-3 py-2.5 text-xs font-medium transition-all",
+                        selectedCategory === cat.id
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                      )}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Upload */}
               <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">第一步：上传商品图</h2>
+                <h2 className="mb-3 text-sm font-semibold text-foreground">第一步：上传商品图 (可多选)</h2>
                 <UploadDropzone
-                  onFileSelect={setFile}
-                  currentFile={file}
-                  onClear={() => setFile(null)}
+                  onFileSelect={setFiles}
+                  currentFiles={files}
+                  onClear={(idx) => {
+                    if (idx !== undefined) {
+                      setFiles(prev => prev.filter((_, i) => i !== idx));
+                    } else {
+                      setFiles([]);
+                    }
+                  }}
                 />
               </div>
 
@@ -182,17 +341,66 @@ export default function ModelGenerationPage() {
                 </div>
               </div>
 
+              {/* AI Prompt Generator */}
+              <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-primary">第五步：构建图像 Prompt</h2>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedPromptModel}
+                      onChange={(e) => setSelectedPromptModel(e.target.value)}
+                      className="h-8 rounded-md border border-primary/30 bg-background px-2 text-xs text-foreground shadow-sm outline-none focus:ring-1 focus:ring-primary/50"
+                      disabled={isLoadingPrompt}
+                    >
+                      <option value="mock">演示专用极速模型 (Mock - Safe)</option>
+                      <option value="deepseek">DeepSeek V3 (Real API)</option>
+                      <option value="kimi">Kimi 月之暗面 (Real API)</option>
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={handleGeneratePrompt}
+                      disabled={isLoadingPrompt || files.length === 0}
+                    >
+                      {isLoadingPrompt ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="h-3.5 w-3.5" />
+                          生成 Prompt
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                {imagePrompt ? (
+                  <textarea
+                    className="w-full rounded-md border border-primary/20 bg-background/50 p-3 text-xs text-foreground min-h-[120px] focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none"
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center rounded-md border border-dashed border-primary/20 bg-background/50 py-8">
+                    <p className="text-xs text-muted-foreground">点击右上角生成 Prompt</p>
+                  </div>
+                )}
+              </div>
+
               {/* Generate Button */}
               <Button
                 size="lg"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 h-12"
-                disabled={!file || generating}
+                disabled={files.length === 0 || generating}
                 onClick={handleGenerate}
               >
                 {generating ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    AI生成中...
+                    Generating AI Try-On...
                   </>
                 ) : (
                   <>
@@ -277,6 +485,19 @@ export default function ModelGenerationPage() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Marketing Copy Generated by Gemini */}
+                  {marketingCopy && (
+                    <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 glow-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-bold text-primary">AI 专属营销文案</span>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                        {marketingCopy}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/30 py-32">

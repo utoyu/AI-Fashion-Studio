@@ -6,22 +6,22 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 interface UploadDropzoneProps {
-  onFileSelect: (file: File) => void
-  currentFile?: File | null
-  onClear?: () => void
+  onFileSelect: (files: File[]) => void
+  currentFiles?: File[]
+  onClear?: (index?: number) => void
   label?: string
   hint?: string
 }
 
 export function UploadDropzone({
   onFileSelect,
-  currentFile,
+  currentFiles = [],
   onClear,
   label = "上传商品平铺图",
-  hint = "支持 JPG、PNG 格式，建议尺寸 1000x1000 以上",
+  hint = "支持多张上传 (最多4张)。JPG、PNG 格式，建议尺寸 1000x1000 以上",
 }: UploadDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [previews, setPreviews] = useState<{ url: string, file: File }[]>([])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -40,6 +40,17 @@ export function UploadDropzone({
     setIsDragging(false)
   }, [])
 
+  const processFiles = useCallback((files: FileList | File[]) => {
+    const newFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 4); // Limit to 4 images
+    if (newFiles.length > 0) {
+      onFileSelect(newFiles);
+      setPreviews(newFiles.map(file => ({
+        url: URL.createObjectURL(file),
+        file
+      })));
+    }
+  }, [onFileSelect]);
+
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
@@ -47,56 +58,71 @@ export function UploadDropzone({
       setIsDragging(false)
 
       const files = e.dataTransfer.files
-      if (files?.[0]) {
-        const file = files[0]
-        onFileSelect(file)
-        setPreview(URL.createObjectURL(file))
+      if (files?.length > 0) {
+        processFiles(files);
       }
     },
-    [onFileSelect]
+    [processFiles]
   )
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
-      if (files?.[0]) {
-        const file = files[0]
-        onFileSelect(file)
-        setPreview(URL.createObjectURL(file))
+      if (files?.length) {
+        processFiles(files);
       }
     },
-    [onFileSelect]
+    [processFiles]
   )
 
-  const handleClear = useCallback(() => {
-    setPreview(null)
-    onClear?.()
+  const handleClear = useCallback((index: number) => {
+    setPreviews(prev => {
+      const newPreviews = [...prev];
+      URL.revokeObjectURL(newPreviews[index].url);
+      newPreviews.splice(index, 1);
+      return newPreviews;
+    });
+    onClear?.(index);
   }, [onClear])
 
-  if (preview || currentFile) {
+  if (previews.length > 0 || currentFiles.length > 0) {
+    const displayItems = previews.length > 0 ? previews : currentFiles.map(f => ({ url: URL.createObjectURL(f), file: f }));
+
     return (
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-        <div className="relative aspect-square w-full max-h-[400px]">
-          <Image
-            src={preview || ""}
-            alt="已上传的商品图"
-            fill
-            className="object-contain p-4"
-          />
-        </div>
-        <button
-          onClick={handleClear}
-          className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground"
-          aria-label="移除图片"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="border-t border-border bg-secondary/30 px-4 py-3">
-          <p className="text-sm text-muted-foreground truncate">
-            <ImageIcon className="mr-2 inline h-4 w-4" />
-            {currentFile?.name || "已上传图片"}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 gap-4">
+        {displayItems.map((item, index) => (
+          <div key={index} className="relative overflow-hidden rounded-xl border border-border bg-card">
+            <div className="relative aspect-square w-full">
+              <Image
+                src={item.url}
+                alt={`已上传的商品图 ${index + 1}`}
+                fill
+                className="object-contain p-2"
+              />
+            </div>
+            <button
+              onClick={(e) => { e.preventDefault(); handleClear(index); }}
+              className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-background/80 text-muted-foreground backdrop-blur-sm transition-colors hover:text-destructive hover:bg-background"
+              aria-label="移除图片"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <div className="border-t border-border bg-secondary/30 px-3 py-2">
+              <p className="text-xs text-muted-foreground truncate" title={item.file.name}>
+                <ImageIcon className="mr-1.5 inline h-3 w-3" />
+                {item.file.name}
+              </p>
+            </div>
+          </div>
+        ))}
+        {/* Allow adding more if less than 4 */}
+        {displayItems.length < 4 && (
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-4 transition-all hover:border-primary/50 hover:bg-secondary/30 bg-card aspect-square">
+            <input type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFileInput} />
+            <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+            <span className="text-xs text-muted-foreground">继续添加</span>
+          </label>
+        )}
       </div>
     )
   }
@@ -118,6 +144,7 @@ export function UploadDropzone({
         type="file"
         className="sr-only"
         accept="image/jpeg,image/png,image/webp"
+        multiple
         onChange={handleFileInput}
       />
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
