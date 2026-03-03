@@ -15,14 +15,20 @@ export const viewport: Viewport = {
   themeColor: '#0d9fb8',
 }
 
+import { ThemeProvider } from '@/components/theme-provider'
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN">
-      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>{children}</body>
+    <html lang="zh-CN" suppressHydrationWarning>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="cream" themes={['light', 'dark', 'cream']} enableSystem={false}>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

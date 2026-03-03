@@ -9,7 +9,46 @@
 }
 
 @layer base {
+
+  /* 1. 经典明亮 (Light Mode) */
   :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 187 80% 48%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 187 80% 48%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 187 80% 48%;
+    --radius: 0.75rem;
+    --chart-1: 187 80% 48%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 187 80% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 187 80% 48%;
+  }
+
+  /* 2. 午夜暗色 (Dark Mode - 保留你原本所有配置) */
+  .dark {
     --background: 240 10% 4%;
     --foreground: 0 0% 95%;
     --card: 240 6% 8%;
@@ -34,7 +73,6 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --radius: 0.75rem;
     --sidebar-background: 240 6% 6%;
     --sidebar-foreground: 0 0% 90%;
     --sidebar-primary: 187 80% 48%;
@@ -44,30 +82,90 @@
     --sidebar-border: 240 4% 16%;
     --sidebar-ring: 187 80% 48%;
   }
+
+  /* 3. 高定暖白 (Cream Luxury Mode) */
+  .cream {
+    --background: 45 29% 97%;
+    --foreground: 0 0% 17%;
+    --card: 45 20% 99%;
+    --card-foreground: 0 0% 17%;
+    --popover: 45 20% 99%;
+    --popover-foreground: 0 0% 17%;
+    --primary: 187 80% 48%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 40 15% 90%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 40 15% 90%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 187 80% 48%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 20% 88%;
+    --input: 40 20% 88%;
+    --ring: 187 80% 48%;
+    --chart-1: 187 80% 48%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 45 29% 95%;
+    --sidebar-foreground: 0 0% 25%;
+    --sidebar-primary: 187 80% 48%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 40 15% 88%;
+    --sidebar-accent-foreground: 0 0% 20%;
+    --sidebar-border: 40 20% 85%;
+    --sidebar-ring: 187 80% 48%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    /* 增加了丝滑的渐变过渡效果 */
+    @apply bg-background text-foreground transition-colors duration-500;
   }
 }
 
+/* 完美保留您所有的酷炫动画 */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-float {

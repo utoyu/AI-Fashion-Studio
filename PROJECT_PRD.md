@@ -39,3 +39,10 @@ The application must dynamically handle two distinct business lines with differe
 6. Click **"一键生成模特图"** -> Wait for API/Mock response (Shows a 3-step Loading state).
 7. Preview the 3 generated high-res images directly within the main gallery and view the AI Marketing Copy underneath.
 8. Switch between thumbnail results and download assets.
+
+## 6. Recent UI/UX & Feature Optimizations (March 2026)
+- **Advanced Photo Studio (摄影室):** Introduced a professional-grade UI layout spanning a true 1:2 ratio. Includes an interactive 10-block configuration grid with custom, hand-drawn vector SVGs (Pants, Innerwear, Dress), embedded AI-assist switches, fast-toggle accessory options, and a comprehensive history view pane.
+- **Global Header Standardization:** Executed pixel-perfect alignment across all 7 major functional pages (Photo Studio, AI Models, Assets, Custom Model, Image Tools, Smart Retouch, KOC Content). The top headers and sidebar logo container now share strictly unified dimensions (`h-20 shrink-0`), padding (`px-8`), and modern typography styling (`text-2xl tracking-tight`).
+- **Sidebar Refactoring:** Reordered features intuitively: "Custom Model" follows "Assets Library", "Image Expansion" morphed into a consolidated "Image Tools" tab, and duplicate entries were purged. 
+- **Asset Library Robustness:** Implemented drag-to-pan within image lightboxes, completely resolved single-click vs. double-click interaction conflicts via debouncing, and added a fail-safe double-verification layer for asset deletions.
+- **Component Architecture:** Standardized the `UploadDropzone` component across the entire application to reliably support concurrent multi-file (`File[]`) array uploads and strict Type definitions, drastically reducing cross-page regressions.

@@ -65,10 +65,10 @@ export default function ImageToolsPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-10">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">图片工具</h1>
-          <p className="text-sm text-muted-foreground">图片扩充与智能拼接，适配各电商平台尺寸</p>
+          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">图片工具</h1>
+          <p className="text-sm text-muted-foreground mt-1">图片扩充与智能拼接，适配各电商平台尺寸</p>
         </div>
       </div>
 
@@ -108,8 +108,8 @@ export default function ImageToolsPage() {
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-foreground">上传图片</h2>
                 <UploadDropzone
-                  onFileSelect={setFile}
-                  currentFile={file}
+                  onFileSelect={(files) => setFile(files[0] || null)}
+                  currentFiles={file ? [file] : []}
                   onClear={() => {
                     setFile(null)
                     setProcessed(false)

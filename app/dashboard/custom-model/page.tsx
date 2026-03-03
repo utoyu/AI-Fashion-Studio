@@ -82,10 +82,10 @@ export default function CustomModelPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-10">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">定制模特</h1>
-          <p className="text-sm text-muted-foreground">自定义肤色、体型、年龄、发型、妆容，打造专属AI模特</p>
+          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">定制模特</h1>
+          <p className="text-sm text-muted-foreground mt-1">自定义肤色、体型、年龄、发型、妆容，打造专属AI模特</p>
         </div>
       </div>
 
@@ -98,8 +98,8 @@ export default function CustomModelPage() {
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-foreground">上传商品图</h2>
                 <UploadDropzone
-                  onFileSelect={setFile}
-                  currentFile={file}
+                  onFileSelect={(files) => setFile(files[0] || null)}
+                  currentFiles={file ? [file] : []}
                   onClear={() => {
                     setFile(null)
                     setResults([])

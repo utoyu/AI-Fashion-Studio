@@ -87,10 +87,10 @@ export default function KOCContentPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-10">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">KOC种草内容</h1>
-          <p className="text-sm text-muted-foreground">一键生成小红书、抖音风格种草图文，助力社交营销</p>
+          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">KOC种草内容</h1>
+          <p className="text-sm text-muted-foreground mt-1">一键生成小红书、抖音风格种草图文，助力社交营销</p>
         </div>
       </div>
 
@@ -102,8 +102,8 @@ export default function KOCContentPage() {
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-foreground">上传商品图</h2>
                 <UploadDropzone
-                  onFileSelect={setFile}
-                  currentFile={file}
+                  onFileSelect={(files) => setFile(files[0] || null)}
+                  currentFiles={file ? [file] : []}
                   onClear={() => {
                     setFile(null)
                     setResults([])

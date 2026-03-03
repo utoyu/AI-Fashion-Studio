@@ -57,10 +57,10 @@ export default function SmartRetouchPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-10">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">智能精修</h1>
-          <p className="text-sm text-muted-foreground">AI自动识别商品细节，一键专业级精修</p>
+          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">智能精修</h1>
+          <p className="text-sm text-muted-foreground mt-1">AI自动识别商品细节，一键专业级精修</p>
         </div>
       </div>
 
@@ -174,8 +174,8 @@ export default function SmartRetouchPage() {
 
               {!file ? (
                 <UploadDropzone
-                  onFileSelect={setFile}
-                  currentFile={file}
+                  onFileSelect={(files) => setFile(files[0] || null)}
+                  currentFiles={file ? [file] : []}
                   onClear={() => {
                     setFile(null)
                     setProcessed(false)

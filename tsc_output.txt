@@ -1,0 +1,17 @@
+﻿app/dashboard/custom-model/page.tsx(101,19): error TS2322: Type 'Dispatch<SetStateAction<File | null>>' is not assignable to type '(files: File[]) => void'.
+  Types of parameters 'value' and 'files' are incompatible.
+    Type 'File[]' is not assignable to type 'SetStateAction<File | null>'.
+      Type 'File[]' is missing the following properties from type 'File': lastModified, name, webkitRelativePath, size, and 5 more.
+app/dashboard/image-tools/page.tsx(111,19): error TS2322: Type 'Dispatch<SetStateAction<File | null>>' is not assignable to type '(files: File[]) => void'.
+  Types of parameters 'value' and 'files' are incompatible.
+    Type 'File[]' is not assignable to type 'SetStateAction<File | null>'.
+      Type 'File[]' is missing the following properties from type 'File': lastModified, name, webkitRelativePath, size, and 5 more.
+app/dashboard/koc-content/page.tsx(105,19): error TS2322: Type 'Dispatch<SetStateAction<File | null>>' is not assignable to type '(files: File[]) => void'.
+  Types of parameters 'value' and 'files' are incompatible.
+    Type 'File[]' is not assignable to type 'SetStateAction<File | null>'.
+      Type 'File[]' is missing the following properties from type 'File': lastModified, name, webkitRelativePath, size, and 5 more.
+app/dashboard/photo-studio/page.tsx(171,47): error TS2304: Cannot find name 'Settings'.
+app/dashboard/smart-retouch/page.tsx(177,19): error TS2322: Type 'Dispatch<SetStateAction<File | null>>' is not assignable to type '(files: File[]) => void'.
+  Types of parameters 'value' and 'files' are incompatible.
+    Type 'File[]' is not assignable to type 'SetStateAction<File | null>'.
+      Type 'File[]' is missing the following properties from type 'File': lastModified, name, webkitRelativePath, size, and 5 more.

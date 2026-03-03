@@ -15,33 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { UploadDropzone } from "@/components/dashboard/upload-dropzone"
 import { cn } from "@/lib/utils"
-
-const modelStyles = [
-  { id: "asian-female", label: "亚洲女性", desc: "20-30岁" },
-  { id: "asian-male", label: "亚洲男性", desc: "20-30岁" },
-  { id: "western-female", label: "欧美女性", desc: "20-30岁" },
-  { id: "western-male", label: "欧美男性", desc: "20-30岁" },
-  { id: "mature-female", label: "成熟女性", desc: "30-45岁" },
-  { id: "teen-female", label: "少女风", desc: "18-22岁" },
-]
-
-const backgrounds = [
-  { id: "studio-white", label: "纯白背景" },
-  { id: "studio-gray", label: "灰色影棚" },
-  { id: "outdoor-street", label: "城市街拍" },
-  { id: "outdoor-park", label: "公园自然" },
-  { id: "indoor-cafe", label: "咖啡店" },
-  { id: "indoor-home", label: "居家场景" },
-]
-
-const poses = [
-  { id: "standing", label: "站立正面" },
-  { id: "half-body", label: "半身特写" },
-  { id: "walking", label: "行走姿态" },
-  { id: "sitting", label: "坐姿" },
-  { id: "side", label: "侧身展示" },
-  { id: "back", label: "背面展示" },
-]
+import { siteConfig, aiModelsConfig, generationConfig } from "@/config/site-content"
 
 const sampleResults = [
   "/images/result-model.jpg",
@@ -51,11 +25,10 @@ const sampleResults = [
 ]
 
 export default function ModelGenerationPage() {
-  const [selectedCategory, setSelectedCategory] = useState("Business Menswear")
   const [marketingCopy, setMarketingCopy] = useState("")
 
   const [files, setFiles] = useState<File[]>([])
-  const [selectedModel, setSelectedModel] = useState("asian-female")
+  const [selectedModel, setSelectedModel] = useState(generationConfig.modelStyles[0].id)
   const [selectedBg, setSelectedBg] = useState("studio-white")
   const [selectedPose, setSelectedPose] = useState("standing")
   const [generating, setGenerating] = useState(false)
@@ -65,7 +38,7 @@ export default function ModelGenerationPage() {
   const [imagePrompt, setImagePrompt] = useState("")
   const [hiddenEnglishPrompt, setHiddenEnglishPrompt] = useState("")
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false)
-  const [selectedPromptModel, setSelectedPromptModel] = useState("mock")
+  const [selectedPromptModel, setSelectedPromptModel] = useState(aiModelsConfig.defaultSelected)
 
   const handleGeneratePrompt = useCallback(async () => {
     if (files.length === 0) {
@@ -78,9 +51,9 @@ export default function ModelGenerationPage() {
     setHiddenEnglishPrompt("");
 
     try {
-      const model = modelStyles.find(m => m.id === selectedModel);
-      const bg = backgrounds.find(b => b.id === selectedBg);
-      const pose = poses.find(p => p.id === selectedPose);
+      const model = generationConfig.modelStyles.find(m => m.id === selectedModel);
+      const bg = generationConfig.backgrounds.find(b => b.id === selectedBg);
+      const pose = generationConfig.poses.find(p => p.id === selectedPose);
 
       const resp = await fetch('/api/generate-prompt', {
         method: 'POST',
@@ -90,7 +63,6 @@ export default function ModelGenerationPage() {
           model: model?.label,
           bg: bg?.label,
           pose: pose?.label,
-          category: selectedCategory,
           promptModel: selectedPromptModel
         })
       });
@@ -149,7 +121,7 @@ export default function ModelGenerationPage() {
       const chineseFormatted = formatPrompt(data.chinesePrompt);
       const englishFormatted = formatPrompt(data.englishPrompt);
 
-      const generatedStr = `[系统生成 Prompt]\n模型: ${model?.label} (${model?.desc})\n场景: ${bg?.label}\n姿态: ${pose?.label}\n风格: ${selectedCategory === "Business Menswear" ? "商务通勤男装" : "户外运动装备"}\n\n[展示用中文描述]\n${chineseFormatted}\n\n[底层图像生成指令 (English)]\n${englishFormatted}`;
+      const generatedStr = `[系统生成 Prompt]\n模型: ${model?.label} (${model?.desc})\n场景: ${bg?.label}\n姿态: ${pose?.label}\n\n[展示用中文描述]\n${chineseFormatted}\n\n[底层图像生成指令 (English)]\n${englishFormatted}`;
 
       setImagePrompt(generatedStr);
       setHiddenEnglishPrompt(typeof data.englishPrompt === 'object' ? JSON.stringify(data.englishPrompt) : data.englishPrompt);
@@ -159,7 +131,7 @@ export default function ModelGenerationPage() {
     } finally {
       setIsLoadingPrompt(false);
     }
-  }, [files, selectedModel, selectedBg, selectedPose, selectedCategory, selectedPromptModel]);
+  }, [files, selectedModel, selectedBg, selectedPose, selectedPromptModel]);
 
   const handleGenerate = useCallback(async () => {
     if (files.length === 0) return
@@ -197,17 +169,17 @@ export default function ModelGenerationPage() {
     } finally {
       setGenerating(false);
     }
-  }, [files, selectedCategory, imagePrompt])
+  }, [files, imagePrompt])
 
-  const selectedModelData = modelStyles.find((m) => m.id === selectedModel)
+  const selectedModelData = generationConfig.modelStyles.find((m) => m.id === selectedModel)
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-10">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">AI模特图生成</h1>
-          <p className="text-sm text-muted-foreground">上传商品平铺图，AI自动生成专业模特穿搭图</p>
+          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">AI模特图</h1>
+          <p className="text-sm text-muted-foreground mt-1">通过上传原图或假缝样衣，AI一键上身，快速生成高质量真模特穿搭图</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">今日剩余: 7/10 张</span>
@@ -223,30 +195,6 @@ export default function ModelGenerationPage() {
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Left: Upload + Settings */}
             <div className="flex flex-col gap-6">
-              {/* Business Line */}
-              <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">第零步：选择业务线</h2>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "Business Menswear", label: "商务通勤男装" },
-                    { id: "Outdoor Gear", label: "户外运动装备" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className={cn(
-                        "rounded-lg border px-3 py-2.5 text-xs font-medium transition-all",
-                        selectedCategory === cat.id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
-                      )}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Upload */}
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-foreground">第一步：上传商品图 (可多选)</h2>
@@ -279,7 +227,7 @@ export default function ModelGenerationPage() {
                   </button>
                   {showModelDropdown && (
                     <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-card py-1 shadow-xl">
-                      {modelStyles.map((m) => (
+                      {generationConfig.modelStyles.map((m) => (
                         <button
                           key={m.id}
                           onClick={() => {
@@ -303,7 +251,7 @@ export default function ModelGenerationPage() {
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-foreground">第三步：选择背景场景</h2>
                 <div className="grid grid-cols-3 gap-2">
-                  {backgrounds.map((bg) => (
+                  {generationConfig.backgrounds.map((bg) => (
                     <button
                       key={bg.id}
                       onClick={() => setSelectedBg(bg.id)}
@@ -324,7 +272,7 @@ export default function ModelGenerationPage() {
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-foreground">第四步：选择模特姿态</h2>
                 <div className="grid grid-cols-3 gap-2">
-                  {poses.map((pose) => (
+                  {generationConfig.poses.map((pose) => (
                     <button
                       key={pose.id}
                       onClick={() => setSelectedPose(pose.id)}
@@ -352,9 +300,11 @@ export default function ModelGenerationPage() {
                       className="h-8 rounded-md border border-primary/30 bg-background px-2 text-xs text-foreground shadow-sm outline-none focus:ring-1 focus:ring-primary/50"
                       disabled={isLoadingPrompt}
                     >
-                      <option value="mock">演示专用极速模型 (Mock - Safe)</option>
-                      <option value="deepseek">DeepSeek V3 (Real API)</option>
-                      <option value="kimi">Kimi 月之暗面 (Real API)</option>
+                      {aiModelsConfig.options.map(option => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                     <Button
                       size="sm"
@@ -366,12 +316,12 @@ export default function ModelGenerationPage() {
                       {isLoadingPrompt ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Generating...
+                          {siteConfig.generatingText}
                         </>
                       ) : (
                         <>
                           <Wand2 className="h-3.5 w-3.5" />
-                          生成 Prompt
+                          {siteConfig.generateButtonText}
                         </>
                       )}
                     </Button>
