@@ -6,11 +6,18 @@ import path from "path";
 
 export async function POST(request: Request) {
     try {
-        const { garmentUrl, category, model, bg, pose, promptModel = "mock" } = await request.json();
-
-        if (!garmentUrl || !category) {
-            return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
-        }
+        const {
+            garmentUrl,
+            category = "Fashion",
+            model,
+            bg,
+            pose,
+            style,
+            accessories,
+            ratio,
+            promptModel = "mock",
+            supplementalPrompt = ""
+        } = await request.json();
 
         console.log("[Generate Prompt API] Started with category:", category);
 
@@ -18,32 +25,34 @@ export async function POST(request: Request) {
             throw new Error("Missing GEMINI_API_KEY in environment variables");
         }
 
-        // Configure HttpsProxyAgent
+        // Configure HttpsProxyAgent for node-fetch
         let proxyAgent: any = undefined;
         if (process.env.LOCAL_PROXY) {
             proxyAgent = new HttpsProxyAgent(process.env.LOCAL_PROXY);
-            console.log(`[Proxy] HttpsProxyAgent configured for: ${process.env.LOCAL_PROXY}`);
         }
 
-        // Helper to read local file to base64
-        const toBase64Image = (url: string) => {
+        // Helper to read local or remote file to base64
+        const toBase64Image = async (url: string) => {
+            if (!url) return null;
+            if (url.startsWith("data:image")) return url.split(",")[1];
+
             try {
-                // If it's a relative URL, read from public folder
-                let filePath = url;
-                if (url.startsWith("/")) {
-                    filePath = path.join(process.cwd(), "public", url);
-                } else if (!url.startsWith("http")) {
-                    return null;
+                if (url.startsWith("http")) {
+                    const response = await fetch(url, { agent: proxyAgent });
+                    const arrayBuffer = await response.arrayBuffer();
+                    return Buffer.from(arrayBuffer).toString('base64');
                 }
+                const filePath = url.startsWith("/") ? path.join(process.cwd(), "public", url) : url;
+                if (!fs.existsSync(filePath)) return null;
                 const fileBuffer = fs.readFileSync(filePath);
                 return fileBuffer.toString('base64');
             } catch (err) {
-                console.error("Local file read error:", err);
+                console.error("toBase64Image error:", err);
                 return null;
             }
         };
 
-        const base64Data = toBase64Image(garmentUrl);
+        const base64Data = garmentUrl ? await toBase64Image(garmentUrl) : null;
 
         let parts: any[] = [];
         if (base64Data) {
@@ -54,22 +63,27 @@ export async function POST(request: Request) {
 
         const systemPrompt = `
 You are an expert multi-modal Fashion AI and Prompt Engineer.
-LOOK at the provided garment image. Extract all precise visual features (colors, patterns, fabric textures, lapels, stitching, buttons, accessories).
+${base64Data ? "LOOK at the provided garment image. Extract all precise visual features (colors, patterns, fabric textures, lapels, stitching, buttons, accessories)." : "Create a high-end fashion scene based on the following specifications."}
 
 Combine these extracted features with the following user specifications:
 - Model Type: ${model || 'Default'}
 - Background Scene: ${bg || 'Default'}
-- Pose: ${pose || 'Default'}
+- Pose/Action: ${pose || 'Default'}
+- Style: ${style || 'Realistic Photography'}
+- Accessories: ${accessories || 'None'}
 - Category: ${category}
+- Target Aspect Ratio: ${ratio || '1:1'}
+- Additional Context: ${supplementalPrompt || 'None'}
 
 Business Rule Constraints:
-- If 'Business Menswear': focus on sharp edges, formal suit tailoring, high structural integrity, windowpane/check patterns, high-quality wool blends.
-- If 'Outdoor Gear': focus on puffy texture, outdoor jacket, dynamic lighting, realistic volume, windproof/waterproof elements.
+- If category relates to 'Suits', 'Business', 'Formal': focus on sharp edges, premium wool texture, correct lapel folds, and high-end executive lighting.
+- If category relates to 'Outerwear', 'Casual': focus on material volume, outdoor lighting, and lifestyle authenticity.
+- The prompt MUST emphasize the garment's specific design elements.
 
-Your task is to generate TWO distinct image generation prompts for the SAME visual scene based on the extracted features and user specs.
+Your task is to generate TWO distinct image generation prompts for the SAME visual scene.
 Return the response as a pure JSON object (do not wrap in markdown \`\`\`json) with exactly two keys:
 {
-  "englishPrompt": "A detailed, structured, technical prompt in English (include camera lenses, lighting names, texture details like 8k resolution, shallow DoF) suitable for Midjourney or Fal.ai.",
+  "englishPrompt": "A detailed, structured, technical prompt in English (include camera lenses, lighting names, texture details like 8k resolution, shallow DoF, specific fabric textures) suitable for Midjourney or Fal.ai. Include '--ar ${ratio || '1:1'}' at the end.",
   "chinesePrompt": "A beautifully written, detailed, marketing-oriented prompt in Chinese describing the entire scene, model, and garment features, suitable for end-user preview."
 }
 `;
@@ -82,12 +96,7 @@ Return the response as a pure JSON object (do not wrap in markdown \`\`\`json) w
         try {
             switch (promptModel) {
                 case "deepseek":
-                    // DeepSeek V3 Real API implementation via node-fetch (OpenAI compatible)
-                    // Endpoint: https://api.deepseek.com/chat/completions (v1/chat/completions)
-                    // Required ENV: DEEPSEEK_API_KEY
-                    console.log("[Generate Prompt API] Calling DeepSeek API...");
                     if (!process.env.DEEPSEEK_API_KEY) throw new Error("Missing DEEPSEEK_API_KEY");
-
                     const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
                         method: 'POST',
                         headers: {
@@ -96,7 +105,7 @@ Return the response as a pure JSON object (do not wrap in markdown \`\`\`json) w
                         },
                         agent: proxyAgent,
                         body: JSON.stringify({
-                            model: "deepseek-chat", // standard DeepSeek V3 text model
+                            model: "deepseek-chat",
                             messages: [
                                 { role: "system", content: "You are an expert multi-modal Fashion AI and Prompt Engineer." },
                                 { role: "user", content: systemPrompt }
@@ -104,23 +113,13 @@ Return the response as a pure JSON object (do not wrap in markdown \`\`\`json) w
                             response_format: { type: "json_object" }
                         })
                     });
-
-                    if (!dsResponse.ok) {
-                        const errBody = await dsResponse.text();
-                        throw new Error(`DeepSeek API failed with status ${dsResponse.status}: ${errBody}`);
-                    }
-
+                    if (!dsResponse.ok) throw new Error(`DeepSeek API error: ${dsResponse.status}`);
                     const dsData = await dsResponse.json() as any;
                     parsedResult = JSON.parse(dsData.choices[0].message.content);
                     break;
 
                 case "kimi":
-                    // Kimi (Moonshot) Real API implementation via node-fetch
-                    // Endpoint: https://api.moonshot.cn/v1/chat/completions
-                    // Required ENV: MOONSHOT_API_KEY
-                    console.log("[Generate Prompt API] Calling Kimi Moonshot API...");
                     if (!process.env.MOONSHOT_API_KEY) throw new Error("Missing MOONSHOT_API_KEY");
-
                     const kimiResponse = await fetch('https://api.moonshot.cn/v1/chat/completions', {
                         method: 'POST',
                         headers: {
@@ -136,60 +135,31 @@ Return the response as a pure JSON object (do not wrap in markdown \`\`\`json) w
                             ]
                         })
                     });
-
-                    if (!kimiResponse.ok) {
-                        const errBody = await kimiResponse.text();
-                        throw new Error(`Kimi API failed with status ${kimiResponse.status}: ${errBody}`);
-                    }
-
+                    if (!kimiResponse.ok) throw new Error(`Kimi API error: ${kimiResponse.status}`);
                     const kimiData = await kimiResponse.json() as any;
-                    // Needs regex cleaning if Kimi doesn't strictly follow JSON forcing
                     let kimiRawText = kimiData.choices[0].message.content.trim();
-                    console.log("[Kimi Raw Text]:", kimiRawText);
                     kimiRawText = kimiRawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
                     parsedResult = JSON.parse(kimiRawText);
-                    console.log("[Kimi Parsed Result]:", parsedResult);
-
-                    // Ensure strings
-                    if (typeof parsedResult.englishPrompt === 'object') {
-                        parsedResult.englishPrompt = JSON.stringify(parsedResult.englishPrompt);
-                    }
-                    if (typeof parsedResult.chinesePrompt === 'object') {
-                        parsedResult.chinesePrompt = JSON.stringify(parsedResult.chinesePrompt);
-                    }
-
                     break;
 
                 case "mock":
                 default:
-                    console.log("[Generate Prompt API] Using highly reliable Mock Generator...");
-                    await new Promise(r => setTimeout(r, 2000)); // Simulate 2s LLM generation time
-
-                    const fallbackChinese = `30岁英俊的中国男模作为新郎的四分之三电影级逼真特写镜头，充满自信地站立并微微微笑。他穿着一件合身的、带暗细格纹的${category === 'Business Menswear' ? '灰咖啡色羊毛混纺西装外套，戗驳领，两粒扣' : '户外冲锋衣，防风带帽设计'}。背景是一个灯光温暖、高档现代的${category === 'Business Menswear' ? '婚礼招待会内景' : '壮丽雪山景色'}，并以浅景深（shallow DoF）模糊背景，以将焦点完全集中在服饰纹理上。**相机：采用全画幅相机拍摄，浅景深，8k超高分辨率。**`;
-
-                    const fallbackEnglish = `A three-quarter cinematic, photorealistic shot of a 30-year-old handsome Chinese male model styled confidently. He is wearing a tailored ${category === 'Business Menswear' ? 'grey-coffee colored wool-blend suit jacket with a subtle windowpane check pattern, peaked lapels' : 'outdoor puffy jacket, windproof design'} (image_0.png). The background is a warmly-lit, upscale modern ${category === 'Business Menswear' ? 'wedding reception interior' : 'snow mountain scenery'}, blurring with a shallow depth of field (shallow DoF) to keep the focus entirely on the garment texture. **Camera: Shot on a full-frame camera with a shallow depth of field, 8k resolution.**`;
-
+                    await new Promise(r => setTimeout(r, 1500));
+                    const isBusiness = category.toLowerCase().includes("business") || category.toLowerCase().includes("suit");
                     parsedResult = {
-                        englishPrompt: fallbackEnglish,
-                        chinesePrompt: fallbackChinese
+                        englishPrompt: `A cinematic photorealistic shot of a polished male model wearing a high-end ${category} (image_0.png). Scene: ${bg || 'modern studio'}. Lighting: dramatic fashion lighting, 8k resolution. --ar ${ratio || '1:1'}`,
+                        chinesePrompt: `电影级写实摄影：一位精英男模身着高定${category}，置身于${bg || '现代影棚'}中。光影深邃有力，完美捕捉了面料的细腻纹理与剪裁的锋芒，展现出极致的职场张力。`
                     };
                     break;
             }
         } catch (apiError: any) {
-            console.warn("[Generate Prompt API] Selected model strategy failed:", apiError.message);
-
-            return NextResponse.json({
-                success: false,
-                error: apiError.message
-            });
+            console.warn("[Generate Prompt API] Model failure:", apiError.message);
+            return NextResponse.json({ success: false, error: apiError.message });
         }
 
         return NextResponse.json({ success: true, ...parsedResult });
     } catch (error: any) {
-        console.error("[Generate Prompt API] Error:", error.message || error);
-        return NextResponse.json(
-            { success: false, error: error.message || "Internal Server Error" },
-            { status: 500 }
-        );
+        console.error("[Generate Prompt API] Error:", error.message);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }

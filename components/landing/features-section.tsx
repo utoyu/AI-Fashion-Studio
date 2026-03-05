@@ -2,57 +2,57 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Wand2, Expand, Layers, Users, Heart, Clapperboard } from "lucide-react"
+import { ArrowRight, Wand2, Expand, Sparkles, Heart, Camera, Image as ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const features = [
   {
+    icon: Camera,
+    title: "AI 全能摄影室",
+    description: "品牌级 AI 拍摄系统。支持服装、模特、场景的高度自定义配置，一键产出符合男装品牌 DNA 的商业级摄影大片。",
+    image: "/images/feature-photo-studio-male.png",
+    href: "/dashboard/photo-studio",
+    stats: "极致光影还原",
+  },
+  {
+    icon: Sparkles,
+    title: "虚拟大使建模",
+    description: "深度定制品牌专属 AI 代言人。支持肤色、体型拓扑、职系特征等多维度精细参数设定，构建六轴视觉模型资产。",
+    image: "/images/feature-virtual-ambassador-male.png",
+    href: "/dashboard/custom-model",
+    stats: "高精度 3D 拓扑",
+  },
+  {
     icon: Wand2,
-    title: "智能精修",
-    description: "AI自动识别商品细节，智能调整色彩、光影、质感。一键去背景、换场景，商品图瞬间提升专业度。",
-    image: "/images/feature-retouch.jpg",
+    title: "智能精修系统",
+    description: "AI 自动识别服装细节，智能调整面料质感与色彩平衡。支持高精度一键去背景及光影重映射，重塑资产专业度。",
+    image: "/images/feature-retouch-shirt.png",
     href: "/dashboard/smart-retouch",
-    stats: "处理速度 < 5秒",
+    stats: "工业级像素处理",
   },
   {
     icon: Expand,
-    title: "图片扩充",
-    description: "智能扩展图片边界，自动补充背景内容。从单一商品图延伸出完整场景，适配各平台尺寸需求。",
-    image: "/images/feature-retouch.jpg",
+    title: "图片扩充工具",
+    description: "智能延伸图片边界，自动补全场景内容。支持从平铺图延伸出完整意境大片，完美适配各类电商平台尺寸需求。",
+    image: "/images/feature-retouch-shirt.png",
     href: "/dashboard/image-tools",
-    stats: "支持 20+ 尺寸",
-  },
-  {
-    icon: Layers,
-    title: "图片拼接",
-    description: "智能版式设计，多图自动排版拼接。生成电商详情页、卖点对比图、多角度展示图，提升信息密度。",
-    image: "/images/feature-retouch.jpg",
-    href: "/dashboard/image-tools",
-    stats: "50+ 模板",
-  },
-  {
-    icon: Users,
-    title: "定制模特",
-    description: "AI生成多种风格模特，支持自定义肤色、体型、年龄、妆容。真人级别渲染效果，无需实拍即可获得专业模特图。",
-    image: "/images/feature-model.jpg",
-    href: "/dashboard/custom-model",
-    stats: "100+ 模特风格",
+    stats: "全比例自动适配",
   },
   {
     icon: Heart,
-    title: "KOC种草",
-    description: "一键生成小红书、抖音风格种草图文。AI自动匹配热门版式、文案模板，让商品内容直接触达消费者。",
+    title: "电商组图 (E-Commerce Catalog)",
+    description: "针对精英商务、都会休闲等垂直场景，一键生成小红书/抖音风格种草图文，极大缩短内容生产到转化的路径。",
     image: "/images/feature-koc.jpg",
     href: "/dashboard/koc-content",
-    stats: "转化率提升 200%",
+    stats: "内容生产率 +500%",
   },
   {
-    icon: Clapperboard,
-    title: "场景视频",
-    description: "从静态图片生成动态场景视频、功能展示视频、剧情短片。AI驱动的视频内容生产线，降低90%视频制作成本。",
-    image: "/images/feature-model.jpg",
-    href: "/dashboard/model-generation",
-    stats: "即将上线",
+    icon: ImageIcon,
+    title: "智能素材库",
+    description: "结构化管理品牌数字资产。支持按品类、职系、场景智能筛选，实现服装、模特、背景等模块化资产的秒级检索与调用。",
+    image: "/images/feature-retouch.jpg",
+    href: "/dashboard/assets",
+    stats: "数字化资产闭环",
   },
 ]
 

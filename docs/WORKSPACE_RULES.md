@@ -1,5 +1,10 @@
 # Global Workspace Rules for AI Fashion Studio
 
+## 0. Project DNA & Brand Background (MANDATORY PREMISE)
+- **Identity:** We are a **Menswear Brand Operations Company**.
+- **Core Focus:** Male Business (商务), Casual (休闲), Sports (运动) apparel, and Accessories (配饰).
+- **Creative Mandate:** All architectural plans, UI designs, AI prompt engineering, and marketing copies MUST center around the high-end, professional, and diverse aesthetics of modern menswear.
+
 ## 1. Tech Stack & UI Conventions
 - **Framework & Routing:** Next.js (App Router strictly).
 - **Core Languages:** TypeScript (Strong typings required) and Tailwind CSS.
@@ -14,7 +19,7 @@
 
 ## 3. Architecture & Functional Components
 - **Modular Upload:** All file drop interactions must use the standardized `UploadDropzone` component capable of handling `File[]` arrays correctly to avoid duplicate bug fixing. 
-- **Event Handling:** Explicitly resolve event bubbling conflicts (e.g., single click viewing vs. double click editing/deleting in asset grids) using `setTimeout`/debouncing.
+- **Event Handling:** Explicitly resolve event bubbling conflicts (e.g., single click viewing vs. double click editing) using debouncing. For asset libraries, implement **Conditional Logic** within the `onDoubleClick` handler to ensure only type-appropriate modals are triggered (e.g., Garment-only fields should never appear for Model assets).
 - **API First Backend:** All logic executes through Next.js Route Handlers (`app/api/...`). Keep them serverless-ready for Vercel. Include comprehensive `try/catch` wrappers.
 
 ## 4. Multi-Model LLM Integration & Prompt Engineering
@@ -23,4 +28,12 @@
 
 ## 5. Agent Workflow
 - **Language Preference:** The agent must ALWAYS reply explaining the code and thoughts in Chinese (中文), maintaining an encouraging, professional product-engineer tone.
+- **Documentation First:** Before starting research or deep features, the agent MUST consult the `docs/` directory for PRD, Rules, and Lessons Learned (`AI_Agent_Lessons.md`).
 - **Execution:** Implement changes incrementally and correctly. Apply changes via multi-replace or file drops dynamically. Confirm terminal results implicitly.
+
+## 6. Windows File Management (CRITICAL)
+Due to Windows/PowerShell idiosyncrasies, the following rules are MANDATORY for file-system tasks:
+- **Atomic Creation:** Always use `New-Item -ItemType Directory -Force` for directory creation.
+- **I/O Sync:** Do NOT execute file moves (`cp`, `mv`) in the same command block as the directory creation that houses them. Split them into separate tool calls or wait pulses.
+- **Path Integrity:** Wrap all paths in double quotes and prefer absolute paths. Verify paths with `Test-Path` before high-volume operations.
+- **Verification:** Always check command status and exit codes for file operations.

@@ -16,6 +16,7 @@ export const viewport: Viewport = {
 }
 
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from "@/components/ui/sonner"
 
 export default function RootLayout({
   children,
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="cream" themes={['light', 'dark', 'cream']} enableSystem={false}>
           {children}
+          <Toaster position="top-center" richColors />
         </ThemeProvider>
       </body>
     </html>

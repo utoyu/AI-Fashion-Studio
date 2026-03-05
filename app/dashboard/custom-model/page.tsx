@@ -11,121 +11,195 @@ import {
   Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { UploadDropzone } from "@/components/dashboard/upload-dropzone"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 const skinTones = [
-  { id: "fair", label: "白皙", color: "bg-[#FDDCB5]" },
-  { id: "natural", label: "自然", color: "bg-[#E8B88A]" },
-  { id: "warm", label: "暖色", color: "bg-[#D4956B]" },
+  { id: "fair", label: "冷白皮", color: "bg-[#FDDCB5]" },
+  { id: "natural", label: "自然色", color: "bg-[#E8B88A]" },
+  { id: "warm", label: "暖阳色", color: "bg-[#D4956B]" },
   { id: "tan", label: "小麦色", color: "bg-[#B07848]" },
-  { id: "deep", label: "深色", color: "bg-[#7B5138]" },
+  { id: "deep", label: "古铜色", color: "bg-[#7B5138]" },
 ]
 
 const bodyTypes = [
-  { id: "slim", label: "纤细", desc: "偏瘦体型" },
-  { id: "standard", label: "标准", desc: "匀称体型" },
-  { id: "athletic", label: "运动", desc: "健美体型" },
-  { id: "curvy", label: "丰满", desc: "圆润体型" },
-  { id: "plus", label: "大码", desc: "大码友好" },
+  { id: "slim", label: "精干修身", desc: "轻量裁剪适配" },
+  { id: "athletic", label: "健美V型", desc: "倒三角模特身材" },
+  { id: "standard", label: "稳重平衡", desc: "商务西装标配" },
+  { id: "rugged", label: "硬朗魁梧", desc: "工装/户外风格" },
+  { id: "mature", label: "资深管理", desc: "大气成熟体态" },
 ]
 
 const ageRanges = [
-  { id: "teen", label: "18-22", desc: "学生风" },
-  { id: "young", label: "23-28", desc: "轻熟风" },
-  { id: "mature", label: "29-35", desc: "知性风" },
-  { id: "elegant", label: "36-45", desc: "优雅风" },
+  { id: "young", label: "20-25岁", desc: "潮流/都会" },
+  { id: "elite", label: "26-35岁", desc: "职场/商务" },
+  { id: "executive", label: "36-45岁", desc: "管理/睿智" },
+  { id: "senior", label: "46岁以上", desc: "资深/名流" },
 ]
 
 const hairStyles = [
-  { id: "long-straight", label: "长直发" },
-  { id: "long-curl", label: "长卷发" },
-  { id: "medium", label: "中长发" },
-  { id: "short", label: "短发" },
-  { id: "ponytail", label: "马尾" },
-  { id: "bun", label: "丸子头" },
+  { id: "formal", label: "商务大背头" },
+  { id: "buzz", label: "清爽寸头" },
+  { id: "textured", label: "都会碎发" },
+  { id: "medium", label: "雅致中长" },
+  { id: "side-part", label: "经典偏分" },
+  { id: "natural", label: "自然原生" },
 ]
 
-const makeupStyles = [
-  { id: "natural", label: "自然裸妆" },
-  { id: "light", label: "淡妆" },
-  { id: "glam", label: "精致妆容" },
-  { id: "korean", label: "韩系妆容" },
-  { id: "vintage", label: "复古妆容" },
-  { id: "none", label: "无妆" },
+const groomingStyles = [
+  { id: "clean", label: "清爽净面" },
+  { id: "stubble", label: "轻度胡茬" },
+  { id: "shadow", label: "型格阴影" },
+  { id: "full", label: "络腮胡须" },
+  { id: "defined", label: "棱角修饰" },
+  { id: "soft", label: "柔和修容" },
 ]
 
 export default function CustomModelPage() {
   const [file, setFile] = useState<File | null>(null)
   const [skinTone, setSkinTone] = useState("natural")
-  const [bodyType, setBodyType] = useState("standard")
-  const [ageRange, setAgeRange] = useState("young")
-  const [hairStyle, setHairStyle] = useState("long-straight")
-  const [makeupStyle, setMakeupStyle] = useState("natural")
+  const [bodyType, setBodyType] = useState("athletic")
+  const [ageRange, setAgeRange] = useState("elite")
+  const [hairStyle, setHairStyle] = useState("formal")
+  const [groomingStyle, setGroomingStyle] = useState("clean")
+  const [supplementalPrompt, setSupplementalPrompt] = useState("")
   const [generating, setGenerating] = useState(false)
-  const [results, setResults] = useState<string[]>([])
-  const [activeResult, setActiveResult] = useState(0)
+  const [isArchiving, setIsArchiving] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Matrix result: 6 views as requested
+  const [results, setResults] = useState<{
+    portrait: { front: string; side: string; back: string };
+    fullBody: { front: string; side: string; back: string };
+  } | null>(null)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (!results) return
+    const allIds = [
+      'p-front', 'p-side', 'p-back',
+      'f-front', 'f-side', 'f-back'
+    ]
+    if (selectedIds.size === allIds.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(allIds))
+    }
+  }
+
+  const handleArchive = useCallback(() => {
+    if (selectedIds.size === 0) return
+
+    setIsArchiving(true)
+    const count = selectedIds.size
+
+    // Simulate API call
+    setTimeout(() => {
+      toast.success(`成功归档 ${count} 项资产至素材库`, {
+        description: "您可以在素材库的‘AI模特图’分类中查看这些资产",
+        duration: 3000,
+      })
+      setIsArchiving(false)
+      setSelectedIds(new Set()) // Clear selection after success
+    }, 1200)
+  }, [selectedIds])
 
   const handleGenerate = useCallback(() => {
-    if (!file) return
     setGenerating(true)
     setTimeout(() => {
-      setResults([
-        "/images/result-model.jpg",
-        "/images/feature-model.jpg",
-        "/images/feature-koc.jpg",
-      ])
+      setResults({
+        portrait: {
+          front: "/images/assets/business/model_brand_ambassador_1.png",
+          side: "/images/assets/business/model_brand_ambassador_2.png",
+          back: "/images/assets/business/bg_intl_asian_male_urban.png", // placeholders
+        },
+        fullBody: {
+          front: "/images/assets/business/model_brand_ambassador_1.png",
+          side: "/images/assets/business/model_brand_ambassador_2.png",
+          back: "/images/assets/business/bg_intl_asian_male_mountain.png",
+        }
+      })
       setGenerating(false)
-    }, 3500)
+    }, 4000)
   }, [file])
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
       <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-10">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">定制模特</h1>
-          <p className="text-sm text-muted-foreground mt-1">自定义肤色、体型、年龄、发型、妆容，打造专属AI模特</p>
+          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight italic">AI模特定制</h1>
+          <p className="text-sm text-muted-foreground mt-1">根据上传形象或设定的多维参数，深度定制男装品牌专属 AI 形象资产</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl p-6">
-          <div className="grid gap-8 lg:grid-cols-5">
-            {/* Left: Customization */}
-            <div className="flex flex-col gap-6 lg:col-span-2">
-              {/* Upload */}
+      <div className="flex-1 overflow-y-auto hide-scrollbar">
+        <div className="mx-auto max-w-7xl p-8">
+          <div className="grid gap-10 lg:grid-cols-12">
+
+            {/* Left: Customization Console */}
+            <div className="flex flex-col gap-8 lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm h-fit">
+              <div className="flex items-center gap-2 mb-2 text-primary">
+                <Sparkles className="h-4 w-4" />
+                <span className="text-sm font-bold tracking-widest uppercase">参数设定控制台</span>
+              </div>
+
+              {/* Upload Persona Source */}
               <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">上传商品图</h2>
+                <h2 className="mb-3 text-xs font-bold text-slate-500 uppercase tracking-tighter flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  大使视觉雏形上传 (可选)
+                </h2>
                 <UploadDropzone
                   onFileSelect={(files) => setFile(files[0] || null)}
                   currentFiles={file ? [file] : []}
                   onClear={() => {
                     setFile(null)
-                    setResults([])
+                    setResults(null)
                   }}
+                />
+              </div>
+
+              {/* Supplemental Prompt */}
+              <div>
+                <h2 className="mb-3 text-xs font-bold text-slate-500 uppercase tracking-tighter">补充建模指引 (Prompt)</h2>
+                <Textarea
+                  placeholder="在此输入更具体的额外要求，例如：眼神坚毅、五官深邃、具有亲和力的高层领导者气质..."
+                  className="min-h-[100px] rounded-xl border-slate-100 bg-slate-50/50 text-xs font-medium placeholder:text-slate-300 resize-none focus-visible:ring-primary/20"
+                  value={supplementalPrompt}
+                  onChange={(e) => setSupplementalPrompt(e.target.value)}
                 />
               </div>
 
               {/* Skin Tone */}
               <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">肤色</h2>
-                <div className="flex gap-3">
+                <h2 className="mb-4 text-xs font-bold text-slate-500 uppercase tracking-tighter">肤色调节</h2>
+                <div className="flex justify-between px-2">
                   {skinTones.map((tone) => (
                     <button
                       key={tone.id}
                       onClick={() => setSkinTone(tone.id)}
-                      className="flex flex-col items-center gap-1.5"
-                      title={tone.label}
+                      className="group flex flex-col items-center gap-2"
                     >
                       <div
                         className={cn(
-                          "h-10 w-10 rounded-full border-2 transition-all",
-                          tone.color,
-                          skinTone === tone.id ? "border-primary scale-110" : "border-border"
+                          "h-8 w-8 rounded-full border-2 transition-all p-0.5",
+                          skinTone === tone.id ? "border-primary ring-2 ring-primary/20 scale-110" : "border-slate-100"
                         )}
-                      />
-                      <span className={cn("text-[10px]", skinTone === tone.id ? "text-primary font-medium" : "text-muted-foreground")}>
+                      >
+                        <div className={cn("w-full h-full rounded-full shadow-inner", tone.color)} />
+                      </div>
+                      <span className={cn("text-[10px] font-medium transition-colors", skinTone === tone.id ? "text-primary" : "text-slate-400 group-hover:text-slate-600")}>
                         {tone.label}
                       </span>
                     </button>
@@ -133,199 +207,248 @@ export default function CustomModelPage() {
                 </div>
               </div>
 
-              {/* Body Type */}
+              {/* Age Range - Elite focus */}
               <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">体型</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {bodyTypes.map((bt) => (
-                    <button
-                      key={bt.id}
-                      onClick={() => setBodyType(bt.id)}
-                      className={cn(
-                        "flex flex-col rounded-lg border px-3 py-2 text-left transition-all",
-                        bodyType === bt.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/30"
-                      )}
-                    >
-                      <span className={cn("text-xs font-medium", bodyType === bt.id ? "text-primary" : "text-foreground")}>
-                        {bt.label}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">{bt.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Age Range */}
-              <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">年龄段</h2>
-                <div className="grid grid-cols-4 gap-2">
+                <h2 className="mb-3 text-xs font-bold text-slate-500 uppercase tracking-tighter">大使职系 (年龄段)</h2>
+                <div className="grid grid-cols-2 gap-3">
                   {ageRanges.map((age) => (
                     <button
                       key={age.id}
                       onClick={() => setAgeRange(age.id)}
                       className={cn(
-                        "flex flex-col items-center rounded-lg border px-2 py-2.5 transition-all",
+                        "flex flex-col items-center rounded-xl border p-3 transition-all text-center",
                         ageRange === age.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/30"
+                          ? "border-primary bg-primary/[0.03] ring-1 ring-primary/20 shadow-sm"
+                          : "border-slate-100 hover:border-slate-200"
                       )}
                     >
-                      <span className={cn("text-xs font-medium", ageRange === age.id ? "text-primary" : "text-foreground")}>
+                      <span className={cn("text-xs font-bold", ageRange === age.id ? "text-primary" : "text-slate-700")}>
                         {age.label}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">{age.desc}</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">{age.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Hair Style */}
+              {/* Body Type - Menswear specific */}
               <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">发型</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {hairStyles.map((hs) => (
+                <h2 className="mb-3 text-xs font-bold text-slate-500 uppercase tracking-tighter">体型拓扑</h2>
+                <div className="grid grid-cols-1 gap-2">
+                  {bodyTypes.map((bt) => (
                     <button
-                      key={hs.id}
-                      onClick={() => setHairStyle(hs.id)}
+                      key={bt.id}
+                      onClick={() => setBodyType(bt.id)}
                       className={cn(
-                        "rounded-lg border px-3 py-2.5 text-xs font-medium transition-all",
-                        hairStyle === hs.id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/30"
+                        "flex items-center justify-between rounded-xl border px-4 py-3 transition-all",
+                        bodyType === bt.id
+                          ? "border-primary bg-primary/[0.03] shadow-sm"
+                          : "border-slate-100 hover:border-slate-200"
                       )}
                     >
-                      {hs.label}
+                      <span className={cn("text-xs font-bold", bodyType === bt.id ? "text-primary" : "text-slate-700")}>
+                        {bt.label}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{bt.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Makeup */}
-              <div>
-                <h2 className="mb-3 text-sm font-semibold text-foreground">妆容</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {makeupStyles.map((ms) => (
-                    <button
-                      key={ms.id}
-                      onClick={() => setMakeupStyle(ms.id)}
-                      className={cn(
-                        "rounded-lg border px-3 py-2.5 text-xs font-medium transition-all",
-                        makeupStyle === ms.id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/30"
-                      )}
+              {/* Grooming - Replacing Makeup */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h2 className="mb-3 text-xs font-bold text-slate-500 uppercase tracking-tighter text-center">发型模组</h2>
+                  <div className="relative">
+                    <select
+                      value={hairStyle}
+                      onChange={(e) => setHairStyle(e.target.value)}
+                      className="w-full h-10 rounded-xl border border-slate-100 bg-slate-50/50 px-3 text-[11px] font-bold text-slate-700 outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20"
                     >
-                      {ms.label}
-                    </button>
-                  ))}
+                      {hairStyles.map(hs => <option key={hs.id} value={hs.id}>{hs.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <h2 className="mb-3 text-xs font-bold text-slate-500 uppercase tracking-tighter text-center">面部修容</h2>
+                  <div className="relative">
+                    <select
+                      value={groomingStyle}
+                      onChange={(e) => setGroomingStyle(e.target.value)}
+                      className="w-full h-10 rounded-xl border border-slate-100 bg-slate-50/50 px-3 text-[11px] font-bold text-slate-700 outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20"
+                    >
+                      {groomingStyles.map(gs => <option key={gs.id} value={gs.id}>{gs.label}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <Button
                 size="lg"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 h-12"
-                disabled={!file || generating}
+                className="w-full bg-slate-900 text-white hover:bg-slate-800 gap-3 h-14 rounded-2xl shadow-xl shadow-slate-200 mt-4 overflow-hidden group"
+                disabled={generating}
                 onClick={handleGenerate}
               >
                 {generating ? (
-                  <>
+                  <div className="flex items-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    正在生成定制模特...
-                  </>
+                    <span className="font-bold tracking-widest italic">建模中...</span>
+                  </div>
                 ) : (
-                  <>
-                    <Users className="h-5 w-5" />
-                    生成定制模特图
-                  </>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 fill-white/20" />
+                    <span className="font-bold tracking-widest italic">开始高精度建模同步</span>
+                  </div>
                 )}
               </Button>
             </div>
 
-            {/* Right: Results */}
-            <div className="flex flex-col gap-4 lg:col-span-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">生成结果</h2>
-                {results.length > 0 && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={handleGenerate}>
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      重新生成
-                    </Button>
-                    <Button size="sm" className="bg-primary text-primary-foreground gap-1.5">
-                      <Download className="h-3.5 w-3.5" />
-                      下载全部
-                    </Button>
+            {/* Right: Asset Matrix Output */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-mono text-xs">
+                    MT.
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-800">大使数字模型矩阵 (Asset Matrix)</h2>
+                    <p className="text-[11px] text-slate-400 font-medium">六轴视角资产实时输出</p>
+                  </div>
+                </div>
+                {results && (
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={handleSelectAll}
+                      className="text-[11px] font-bold text-primary hover:underline underline-offset-4"
+                    >
+                      {selectedIds.size === 6 ? '取消全选' : '全选所有视角'}
+                    </button>
+                    <div className="h-4 w-[1px] bg-slate-200" />
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="sm" className="rounded-full border-slate-200 text-xs font-bold px-4" onClick={handleGenerate}>
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        重新校准
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={selectedIds.size === 0 || isArchiving}
+                        onClick={handleArchive}
+                        className="bg-primary hover:bg-primary/90 text-white rounded-full px-5 text-xs font-bold shadow-lg shadow-primary/20"
+                      >
+                        {isArchiving ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        {isArchiving ? '正在归档...' : (selectedIds.size > 0 ? `归档所选 (${selectedIds.size})` : '归档至素材库')}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Config Summary */}
-              {file && !generating && results.length === 0 && (
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">当前配置</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      skinTones.find((s) => s.id === skinTone)?.label,
-                      bodyTypes.find((b) => b.id === bodyType)?.label,
-                      ageRanges.find((a) => a.id === ageRange)?.label + "岁",
-                      hairStyles.find((h) => h.id === hairStyle)?.label,
-                      makeupStyles.find((m) => m.id === makeupStyle)?.label,
-                    ].map((tag) => (
-                      <span key={tag} className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs text-foreground">
-                        <Check className="h-3 w-3 text-primary" />
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {generating ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card/50 py-32">
-                  <div className="relative">
-                    <div className="h-20 w-20 rounded-full border-2 border-primary/20" />
-                    <div className="absolute inset-0 h-20 w-20 animate-spin rounded-full border-2 border-transparent border-t-primary" />
-                    <Users className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary" />
+                <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 rounded-[32px] border-2 border-dashed border-slate-100 mt-10">
+                  <div className="relative mb-8">
+                    <div className="h-32 w-32 rounded-full border-4 border-primary/5 shadow-2xl shadow-primary/10" />
+                    <div className="absolute inset-0 h-32 w-32 animate-spin rounded-full border-4 border-transparent border-t-primary" />
+                    <Users className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-primary opacity-50" />
                   </div>
-                  <p className="mt-6 font-display text-lg font-semibold text-foreground">正在生成定制模特</p>
-                  <p className="mt-1 text-sm text-muted-foreground">根据您的定制参数生成中...</p>
+                  <h3 className="text-xl font-bold text-slate-800 italic tracking-wider">正在构建多维数字孪生</h3>
+                  <p className="text-sm text-slate-400 mt-2 font-medium">计算人物三维拓扑特征与面部光影重映射...</p>
                 </div>
-              ) : results.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                  <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-                    <div className="relative aspect-[3/4] w-full">
-                      <Image
-                        src={results[activeResult]}
-                        alt="定制模特图"
-                        fill
-                        className="object-cover"
-                      />
+              ) : results ? (
+                <div className="flex flex-col gap-10">
+                  {/* Portrait Section (Face Matrix) */}
+                  <section>
+                    <div className="flex items-center gap-2 mb-6">
+                      <div className="h-4 w-1 bg-primary rounded-full" />
+                      <h3 className="text-sm font-bold text-slate-700 tracking-widest uppercase">面部视觉系统 (Portrait Views)</h3>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {results.map((src, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setActiveResult(idx)}
-                        className={cn(
-                          "relative aspect-[3/4] overflow-hidden rounded-lg border-2 transition-all",
-                          activeResult === idx ? "border-primary" : "border-border opacity-60 hover:opacity-100"
-                        )}
-                      >
-                        <Image src={src} alt={`方案 ${idx + 1}`} fill className="object-cover" />
-                      </button>
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-3 gap-6">
+                      {[
+                        { key: "p-front", label: "001 正视视角", src: results.portrait.front },
+                        { key: "p-side", label: "002 侧颜视角", src: results.portrait.side },
+                        { key: "p-back", label: "003 后枕视角", src: results.portrait.back }
+                      ].map((view) => (
+                        <div key={view.key} className="group relative cursor-pointer" onClick={() => toggleSelect(view.key)}>
+                          <div className="absolute -top-3 left-4 px-2 py-0.5 bg-slate-800 text-white text-[9px] font-mono tracking-tighter rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {view.label}
+                          </div>
+
+                          {/* Selection Checkbox Overlay */}
+                          <div className={cn(
+                            "absolute top-3 right-3 z-20 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                            selectedIds.has(view.key)
+                              ? "bg-primary border-primary scale-110 shadow-lg"
+                              : "bg-white/50 border-white/80 group-hover:bg-white"
+                          )}>
+                            {selectedIds.has(view.key) && <Check className="w-3 h-3 text-white stroke-[3px]" />}
+                          </div>
+
+                          <div className={cn(
+                            "relative aspect-square rounded-[24px] overflow-hidden border-2 transition-all duration-500",
+                            selectedIds.has(view.key)
+                              ? "border-primary shadow-xl -translate-y-1"
+                              : "border-slate-100 shadow-sm group-hover:shadow-lg"
+                          )}>
+                            <Image src={view.src} alt={view.label} fill className="object-cover" />
+                            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* Full Body Section (Body Matrix) */}
+                  <section>
+                    <div className="flex items-center gap-2 mb-6">
+                      <div className="h-4 w-1 bg-primary rounded-full" />
+                      <h3 className="text-sm font-bold text-slate-700 tracking-widest uppercase">全身剪裁系统 (Full Body Views)</h3>
+                    </div>
+                    <div className="grid grid-cols-3 gap-6">
+                      {[
+                        { key: "f-front", label: "F-001 正向姿态", src: results.fullBody.front },
+                        { key: "f-side", label: "S-001 侧向动态", src: results.fullBody.side },
+                        { key: "f-back", label: "B-001 背向剪裁", src: results.fullBody.back }
+                      ].map((view) => (
+                        <div key={view.key} className="group relative cursor-pointer" onClick={() => toggleSelect(view.key)}>
+                          <div className="absolute -top-3 left-4 px-2 py-0.5 bg-slate-800 text-white text-[9px] font-mono tracking-tighter rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {view.label}
+                          </div>
+
+                          {/* Selection Checkbox Overlay */}
+                          <div className={cn(
+                            "absolute top-3 right-3 z-20 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                            selectedIds.has(view.key)
+                              ? "bg-primary border-primary scale-110 shadow-lg"
+                              : "bg-white/50 border-white/80 group-hover:bg-white"
+                          )}>
+                            {selectedIds.has(view.key) && <Check className="w-3 h-3 text-white stroke-[3px]" />}
+                          </div>
+
+                          <div className={cn(
+                            "relative aspect-[3/4] rounded-[24px] overflow-hidden border-2 transition-all duration-500",
+                            selectedIds.has(view.key)
+                              ? "border-primary shadow-xl -translate-y-1"
+                              : "border-slate-100 shadow-sm group-hover:shadow-lg"
+                          )}>
+                            <Image src={view.src} alt={view.label} fill className="object-cover" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/30 py-32">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
-                    <Sparkles className="h-7 w-7 text-muted-foreground" />
+                <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 rounded-[32px] border-2 border-dashed border-slate-100 mt-10 p-20 text-center">
+                  <div className="w-20 h-20 rounded-3xl bg-white border border-slate-100 shadow-inner flex items-center justify-center mb-6">
+                    <Sparkles className="h-8 w-8 text-slate-200" />
                   </div>
-                  <p className="mt-4 text-sm font-medium text-muted-foreground">自定义模特参数后点击生成</p>
-                  <p className="mt-1 text-xs text-muted-foreground">AI将根据您的偏好生成专属模特</p>
+                  <h3 className="text-lg font-bold text-slate-700">等待资产指派</h3>
+                  <p className="text-sm text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                    请在左侧控制台配置大师参数并上传雏形，系统将为您生成标准的六轴视图建模结果
+                  </p>
                 </div>
               )}
             </div>

@@ -128,13 +128,31 @@ export function UploadDropzone({
     onClear?.(index);
   }, [onClear, onFileSelect])
 
-  // Sync previews if currentFiles is cleared from exterior
+  // Sync previews if currentFiles is updated from exterior (e.g., from an external asset library)
   useEffect(() => {
-    if (currentFiles.length === 0 && previews.length > 0) {
-      previews.forEach(p => URL.revokeObjectURL(p.url));
-      setPreviews([]);
-    }
-  }, [currentFiles, previews]);
+    setPreviews((prev) => {
+      const isOutOfSync = currentFiles.length !== prev.length || currentFiles.some((f, i) => prev[i]?.file !== f);
+      if (!isOutOfSync) return prev;
+
+      // Revoke URLs for files that are no longer in currentFiles
+      const currentFilesSet = new Set(currentFiles);
+      prev.forEach(p => {
+        if (!currentFilesSet.has(p.file)) {
+          URL.revokeObjectURL(p.url);
+        }
+      });
+
+      // Maintain existing URLs for existing files, create new URLs for new files
+      return currentFiles.map(file => {
+        const existing = prev.find(p => p.file === file);
+        if (existing) return existing;
+        return {
+          url: URL.createObjectURL(file),
+          file
+        };
+      });
+    });
+  }, [currentFiles]);
 
   const displayItems = previews.length > 0 ? previews : [];
 

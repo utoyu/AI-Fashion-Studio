@@ -21,7 +21,7 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-foreground">核心功能</h4>
             <ul className="mt-4 flex flex-col gap-2">
-              {["AI模特图", "智能精修", "图片扩充", "图片拼接"].map((item) => (
+              {["AI 全能摄影室", "虚拟大使建模", "智能精修系统", "智能素材库"].map((item) => (
                 <li key={item}>
                   <span className="text-sm text-muted-foreground transition-colors hover:text-foreground cursor-pointer">
                     {item}
@@ -34,7 +34,7 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-foreground">更多服务</h4>
             <ul className="mt-4 flex flex-col gap-2">
-              {["定制模特", "KOC种草", "场景视频", "API接入"].map((item) => (
+              {["图片扩充工具", "电商组图 (Catalog)", "场景视频", "API接入"].map((item) => (
                 <li key={item}>
                   <span className="text-sm text-muted-foreground transition-colors hover:text-foreground cursor-pointer">
                     {item}
@@ -60,7 +60,7 @@ export function Footer() {
 
         <div className="mt-12 border-t border-border pt-8">
           <p className="text-center text-sm text-muted-foreground">
-            &copy; 2026 ModeAI. All rights reserved. 
+            &copy; 2026 ModeAI. All rights reserved.
           </p>
         </div>
       </div>

@@ -24,9 +24,9 @@ export function CTASection() {
               每天免费生成10张图片，无需信用卡，立即体验AI的力量
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <Link href="/dashboard/model-generation">
+              <Link href="/dashboard/photo-studio">
                 <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 h-12 text-base">
-                  免费开始使用
+                  立即开启创作
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

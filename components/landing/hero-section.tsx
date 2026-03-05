@@ -37,10 +37,10 @@ export function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-            <Link href="/dashboard/model-generation">
+            <Link href="/dashboard/photo-studio">
               <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 h-12 text-base">
                 <Upload className="h-4 w-4" />
-                立即上传生成
+                立即开启创作
               </Button>
             </Link>
             <Link href="#features">
@@ -70,8 +70,8 @@ export function HeroSection() {
           <div className="mt-20 w-full max-w-5xl">
             <div className="glow-border relative overflow-hidden rounded-2xl border border-border bg-card">
               <Image
-                src="/images/hero-model.jpg"
-                alt="AI模特图生成效果展示"
+                src="/images/hero-male-menswear.png"
+                alt="AI全能摄影室生成展示"
                 width={1200}
                 height={600}
                 className="w-full"

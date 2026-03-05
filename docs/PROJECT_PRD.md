@@ -3,6 +3,7 @@
 ## 1. Product Overview
 - **Project Name:** AI Fashion Studio (Internal MVP)
 - **Target Users:** Internal E-commerce operations, Marketing, and Design teams.
+- **Project DNA (Project Identity):** We operate as a **Menswear Brand Center**. Our focus is strictly on **Male Business, Casual, Sportswear, and Accessories**. Every generated asset and UI element must reflect this professional menswear identity.
 - **Core Value:** Transform simple "Garment Flat Lay" (平铺图) images into high-fidelity "Model Try-On" images and marketing posters in minutes, significantly reducing photoshoot and post-production costs.
 
 ## 2. Core Business Lines (Crucial for Prompt Routing)
@@ -30,6 +31,12 @@ The application must dynamically handle two distinct business lines with differe
 - **Feature 6: Network Resilience:** Graceful fallbacks for API timeout/connection refused errors, seamlessly switching between real LLM generation and pre-defined semantic local mock strings to prevent UI crashes.
 - **Feature 7: Multi-Model Selection:** Allows users to dynamically switch between different LLM backends (DeepSeek, Kimi (fully integrated), or local Mock) for prompt generation through a unified UI dropdown. Backend API routes handles prompt assembly, payload formatting, JSON sanitization, and proxying specific to each AI model.
 
+- Feature 8: Intelligent Asset Library (P0): A centralized repository categorizing resources into "Garment" (衣物), "Model" (模特), and "Background" (背景). 
+  - **Categorical Intelligence:** Each asset type has a unique, professional detail editing view. Garments focus on production specs, Models on biological/style data, and Backgrounds on scene/lighting environmental data.
+  - **Angle Image Management:** Supports full-suite garment visualization (Front/Main, Back, Left, Right, Top, Bottom) with real-time local file uploads and deletion.
+  - **Lifecycle Metadata:** Tracks creator, modifier, and precise timestamps for every asset modification.
+  - **Interaction Protection:** Uses conditional double-click logic to ensure users only access type-appropriate editing interfaces, preventing unintended data entry.
+
 ## 5. User Flow
 1. Select Business Line (Tab).
 2. Upload Garment Image(s) (supports multi-selection up to 4).
@@ -39,10 +46,14 @@ The application must dynamically handle two distinct business lines with differe
 6. Click **"一键生成模特图"** -> Wait for API/Mock response (Shows a 3-step Loading state).
 7. Preview the 3 generated high-res images directly within the main gallery and view the AI Marketing Copy underneath.
 8. Switch between thumbnail results and download assets.
+9. **Asset Maintenance:** Double-click any library resource to enter the detailed editor. Upload angle images for garments, update model demographic data, or refine background lighting descriptions. Save changes to persist metadata locally.
 
 ## 6. Recent UI/UX & Feature Optimizations (March 2026)
-- **Advanced Photo Studio (摄影室):** Introduced a professional-grade UI layout spanning a true 1:2 ratio. Includes an interactive 10-block configuration grid with custom, hand-drawn vector SVGs (Pants, Innerwear, Dress), embedded AI-assist switches, fast-toggle accessory options, and a comprehensive history view pane.
-- **Global Header Standardization:** Executed pixel-perfect alignment across all 7 major functional pages (Photo Studio, AI Models, Assets, Custom Model, Image Tools, Smart Retouch, KOC Content). The top headers and sidebar logo container now share strictly unified dimensions (`h-20 shrink-0`), padding (`px-8`), and modern typography styling (`text-2xl tracking-tight`).
-- **Sidebar Refactoring:** Reordered features intuitively: "Custom Model" follows "Assets Library", "Image Expansion" morphed into a consolidated "Image Tools" tab, and duplicate entries were purged. 
-- **Asset Library Robustness:** Implemented drag-to-pan within image lightboxes, completely resolved single-click vs. double-click interaction conflicts via debouncing, and added a fail-safe double-verification layer for asset deletions.
-- **Component Architecture:** Standardized the `UploadDropzone` component across the entire application to reliably support concurrent multi-file (`File[]`) array uploads and strict Type definitions, drastically reducing cross-page regressions.
+- **E-Commerce Catalog Redesign (电商组图):** Transformed the "Elite Catalog" generic content generator into a specialized E-Commerce multiple-image matrix builder. Supports robust upload of local images simultaneously integrated with cloud-asset attributes (ingredients, care, sizing) for dynamic product listing generation. Features an expansive configuration layout aligned closely to sidebar boundaries for deep editing.
+- **Advanced Photo Studio (摄影室):** Introduced a professional-grade UI layout spanning a true 1:2 ratio. Includes an interactive 10-block configuration grid with custom SVGs, AI-assist switches, and history tracking.
+- **Categorical Asset Detail System:** Launched specialized 90vh full-modal detail dialogs. 
+  - *Garments:* Implemented a 12-column grid layout aligning product bio, composition, angle uploads, and key point reminders.
+  - *Models/Backgrounds:* Context-aware layouts for biographical and environmental data.
+- **Robust File Operations:** Transitioned to atomic PowerShell-native directory and file management to ensure 100% reliability during batch asset migrations on Windows environments.
+- **Global Header Standardization:** Unified dimensions (`h-20`), padding, and typography across all dashboard functional modules. Updated navigation hierarchies and unified iconography globally across Landing, Navbar, Sidebar, and Footers, prioritizing the Asset Library accessibility.
+- **Interaction Refinement:** Perfected the balance between single-click (preview) and double-click (edit) behaviors across the asset grid, ensuring a fluid, conflict-free user experience.

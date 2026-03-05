@@ -6,11 +6,12 @@ import { Menu, X, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
-  { label: "AI模特图", href: "/dashboard/model-generation" },
+  { label: "AI全能摄影室", href: "/dashboard/photo-studio" },
+  { label: "素材库", href: "/dashboard/assets" },
+  { label: "AI模特定制", href: "/dashboard/custom-model" },
   { label: "智能精修", href: "/dashboard/smart-retouch" },
   { label: "图片工具", href: "/dashboard/image-tools" },
-  { label: "定制模特", href: "/dashboard/custom-model" },
-  { label: "KOC种草", href: "/dashboard/koc-content" },
+  { label: "电商组图", href: "/dashboard/koc-content" },
 ]
 
 export function Navbar() {
@@ -44,7 +45,7 @@ export function Navbar() {
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             登录
           </Button>
-          <Link href="/dashboard/model-generation">
+          <Link href="/dashboard/photo-studio">
             <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
               免费体验
             </Button>
@@ -77,7 +78,7 @@ export function Navbar() {
               <Button variant="ghost" size="sm" className="justify-start text-muted-foreground">
                 登录
               </Button>
-              <Link href="/dashboard/model-generation">
+              <Link href="/dashboard/photo-studio">
                 <Button size="sm" className="w-full bg-primary text-primary-foreground">
                   免费体验
                 </Button>
