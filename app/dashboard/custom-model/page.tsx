@@ -285,7 +285,7 @@ export default function CustomModelPage() {
 
               <Button
                 size="lg"
-                className="w-full bg-slate-900 text-white hover:bg-slate-800 gap-3 h-14 rounded-2xl shadow-xl shadow-slate-200 mt-4 overflow-hidden group"
+                className="w-full bg-primary hover:bg-primary/90 text-white gap-3 h-14 rounded-2xl shadow-xl shadow-primary/20 mt-4 overflow-hidden group"
                 disabled={generating}
                 onClick={handleGenerate}
               >

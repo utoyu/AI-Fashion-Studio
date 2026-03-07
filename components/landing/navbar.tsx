@@ -9,9 +9,9 @@ const navLinks = [
   { label: "AI全能摄影室", href: "/dashboard/photo-studio" },
   { label: "素材库", href: "/dashboard/assets" },
   { label: "AI模特定制", href: "/dashboard/custom-model" },
-  { label: "智能精修", href: "/dashboard/smart-retouch" },
-  { label: "图片工具", href: "/dashboard/image-tools" },
   { label: "电商组图", href: "/dashboard/koc-content" },
+  { label: "一键精修", href: "/dashboard/one-click-retouch" },
+  { label: "手搓精修", href: "/dashboard/manual-retouch" },
 ]
 
 export function Navbar() {

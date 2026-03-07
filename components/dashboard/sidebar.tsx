@@ -16,7 +16,12 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
-  LayoutGrid
+  LayoutGrid,
+  ChevronDown,
+  Wrench,
+  Archive,
+  MousePointer2,
+  Hand
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -24,8 +29,9 @@ import { useState } from "react"
 interface NavItem {
   icon: any
   label: string
-  href: string
+  href?: string
   badge?: string
+  subItems?: { label: string; href: string; icon?: any }[]
 }
 
 const navItems: NavItem[] = [
@@ -33,14 +39,22 @@ const navItems: NavItem[] = [
   { icon: Camera, label: "AI全能摄影室", href: "/dashboard/photo-studio" },
   { icon: ImageIcon, label: "素材库", href: "/dashboard/assets" },
   { icon: Sparkles, label: "AI模特定制", href: "/dashboard/custom-model" },
-  { icon: Wand2, label: "智能精修", href: "/dashboard/smart-retouch" },
-  { icon: Expand, label: "图片工具", href: "/dashboard/image-tools" },
   { icon: LayoutGrid, label: "电商组图", href: "/dashboard/koc-content" },
+  {
+    icon: Wrench,
+    label: "快捷工具",
+    subItems: [
+      { icon: MousePointer2, label: "一键精修", href: "/dashboard/one-click-retouch" },
+      { icon: Hand, label: "手搓精修", href: "/dashboard/manual-retouch" },
+    ]
+  },
+  { icon: Archive, label: "存档中心", href: "/dashboard/archive" },
 ]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [expandedMenu, setExpandedMenu] = useState<string | null>("快捷工具")
 
   return (
     <aside
@@ -63,11 +77,65 @@ export function DashboardSidebar() {
       <nav className="flex-1 overflow-y-auto px-2 py-4 hide-scrollbar">
         <div className="flex flex-col gap-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href.split("#")[0]))
+            const isSubItemActive = item.subItems?.some(s => pathname === s.href)
+            const isActive = item.href ? (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href.split("#")[0]))) : isSubItemActive
+
+            if (item.subItems) {
+              return (
+                <div key={item.label} className="flex flex-col gap-1">
+                  <button
+                    onClick={() => {
+                      if (collapsed) {
+                        setCollapsed(false)
+                        setExpandedMenu(item.label)
+                      } else {
+                        setExpandedMenu(expandedMenu === item.label ? null : item.label)
+                      }
+                    }}
+                    className={cn(
+                      "group relative flex flex-col items-center justify-center gap-1.5 rounded-lg py-3 px-1 text-xs font-medium transition-all duration-200 cursor-pointer",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                    {!collapsed && (
+                      <span className="text-center text-[11px] leading-tight break-keep flex items-center justify-center gap-0.5">
+                        {item.label}
+                        <ChevronDown className={cn("w-3 h-3 transition-transform", expandedMenu === item.label ? "rotate-180" : "")} />
+                      </span>
+                    )}
+                  </button>
+                  {expandedMenu === item.label && !collapsed && (
+                    <div className="flex flex-col gap-1 bg-secondary/30 rounded-lg p-1.5 mx-1">
+                      {item.subItems.map(subItem => {
+                        const isSubActive = pathname === subItem.href
+                        return (
+                          <Link
+                            key={subItem.label}
+                            href={subItem.href}
+                            className={cn(
+                              "flex flex-col items-center justify-center gap-1.5 rounded-md py-2.5 px-1 text-[10px] font-medium transition-all",
+                              isSubActive ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                            )}
+                          >
+                            {subItem.icon && <subItem.icon className={cn("h-4 w-4 shrink-0", isSubActive ? "text-primary" : "")} />}
+                            <span className="text-center leading-tight">{subItem.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.label}
-                href={item.href}
+                href={item.href!}
                 className={cn(
                   "group relative flex flex-col items-center justify-center gap-1.5 rounded-lg py-3 px-1 text-xs font-medium transition-all duration-200",
                   isActive

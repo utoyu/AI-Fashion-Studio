@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -256,6 +257,7 @@ const initialAssets = [
 ]
 
 export default function AssetsPage() {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState("model")
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [searchQuery, setSearchQuery] = useState("")
@@ -429,13 +431,6 @@ export default function AssetsPage() {
                         管理您的服装素材、模特和生成背景
                     </p>
                 </div>
-                <Button
-                    onClick={handleUploadClick}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-md px-6 shadow-sm flex items-center gap-2"
-                >
-                    <Upload className="w-4 h-4" />
-                    上传素材
-                </Button>
             </div>
 
             {/* Tabs Menu */}
@@ -621,16 +616,13 @@ export default function AssetsPage() {
                             onClick={() => {
                                 if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current)
                                 clickTimeoutRef.current = setTimeout(() => {
-                                    setSelectedImageIndex(index)
-                                    setZoom(100)
-                                    setRotation(0)
-                                    setPan({ x: 0, y: 0 })
+                                    setEditingAsset({ ...asset })
                                 }, 250)
                             }}
                             onDoubleClick={(e) => {
                                 e.stopPropagation()
                                 if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current)
-                                setEditingAsset({ ...asset })
+                                router.push(`/dashboard/assets/related/${asset.id}`)
                             }}
                             className="group relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer shadow-sm border border-border/40"
                         >
@@ -642,7 +634,7 @@ export default function AssetsPage() {
                             />
                             {asset.prompt && (
                                 <div className="absolute top-3 left-3 z-10 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 border border-white/20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-y-1 group-hover:translate-y-0 duration-300">
-                                    <Sparkles className="w-2.5 h-2.5 text-[#6c5dd3] fill-[#6c5dd3]" />
+                                    <Sparkles className="w-2.5 h-2.5 text-primary fill-primary" />
                                     <span className="text-[9px] text-white font-bold tracking-widest leading-none mt-0.5">AI</span>
                                 </div>
                             )}
@@ -1360,11 +1352,11 @@ export default function AssetsPage() {
                                             </div>
 
                                             <div className="mt-6 pt-6 border-t border-slate-100 flex-1 flex flex-col min-h-[120px]">
-                                                <h4 className="text-[12px] font-bold text-[#6c5dd3] uppercase tracking-wider mb-3 flex items-center justify-between">
+                                                <h4 className="text-[12px] font-bold text-primary uppercase tracking-wider mb-3 flex items-center justify-between">
                                                     Prompt 指示词
                                                     <button
                                                         onClick={() => setFieldEditor({ open: true, key: 'prompt', label: 'Prompt 指示词', value: editingAsset.prompt || "", maxLength: 1000 })}
-                                                        className="text-slate-300 hover:text-[#6c5dd3] transition-colors"
+                                                        className="text-slate-300 hover:text-primary transition-colors"
                                                     >
                                                         <Pencil className="w-3.5 h-3.5" />
                                                     </button>
@@ -1487,7 +1479,7 @@ export default function AssetsPage() {
                                 取消
                             </Button>
                             <Button
-                                className="w-[180px] h-11 bg-[#6c5dd3] hover:bg-[#5a4cb5] text-white font-bold transition-all"
+                                className="w-[180px] h-11 bg-primary hover:bg-primary/90 text-white font-bold transition-all"
                                 onClick={() => {
                                     setEditingAsset({ ...editingAsset, [fieldEditor.key]: fieldEditor.value });
                                     setFieldEditor(prev => ({ ...prev, open: false }));

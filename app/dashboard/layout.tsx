@@ -17,7 +17,7 @@ export default function DashboardLayout({
         <div className="fixed top-4 right-6 z-50 flex items-center gap-3">
 
           {/* Plan & Settings */}
-          <div className="flex items-center gap-1 p-1 rounded-full bg-white/80 backdrop-blur-md drop-shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white">
+          <div className="flex items-center gap-1 p-1 rounded-full bg-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-200/60">
             <Link href="#" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-slate-100/80 transition-colors text-slate-600">
               <CreditCard className="w-4 h-4" />
               <span className="text-[12px] font-medium">套餐管理</span>
@@ -29,12 +29,12 @@ export default function DashboardLayout({
           </div>
 
           {/* Theme Toggle Wrapper */}
-          <div className="flex items-center bg-white/80 backdrop-blur-md drop-shadow-[0_4px_12px_rgba(0,0,0,0.05)] rounded-2xl border border-white scale-[0.85] origin-right">
+          <div className="flex items-center bg-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.08)] rounded-2xl border border-slate-200/60 p-0.5">
             <ThemeToggle />
           </div>
 
           {/* Quota */}
-          <div className="flex items-center px-4 py-2 rounded-full bg-white/80 backdrop-blur-md drop-shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white">
+          <div className="flex items-center px-4 py-2 rounded-full bg-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-200/60">
             <div className="flex flex-col items-end">
               <span className="text-[9px] text-slate-500 font-medium leading-none mb-1.5">可用额度</span>
               <div className="flex flex-row-reverse items-center gap-1.5">

@@ -411,7 +411,7 @@ export default function EliteCatalogPage() {
 
                 <Button
                   size="lg"
-                  className="w-full bg-[#6c5dd3] hover:bg-[#5a4cb5] text-white shadow-lg shadow-primary/20 gap-2 h-12 rounded-xl transition-all hover:scale-[1.01]"
+                  className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 gap-2 h-12 rounded-xl transition-all hover:scale-[1.01]"
                   disabled={!selectedAsset || generating}
                   onClick={handleGenerate}
                 >
@@ -439,7 +439,7 @@ export default function EliteCatalogPage() {
                     <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl text-xs font-bold border-slate-200" onClick={handleGenerate}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> 批量刷新
                     </Button>
-                    <Button size="sm" className="bg-[#6c5dd3] hover:bg-[#5a4cb5] h-9 px-4 rounded-xl text-xs font-bold shadow-sm">
+                    <Button size="sm" className="bg-primary hover:bg-primary/90 h-9 px-4 rounded-xl text-xs font-bold shadow-sm">
                       <Download className="h-3.5 w-3.5 mr-1.5" /> 批量发布部署
                     </Button>
                   </div>

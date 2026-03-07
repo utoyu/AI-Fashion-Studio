@@ -1,0 +1,42 @@
+# 后端集成准备度审查与优化建议 (Backend Readiness Review)
+
+在完成前端视觉体系与页面交互的全局标准化之后，为确保接下来后端开发的顺利进行，以下是基于当前 React (Next.js App Router) 代码库的系统性优化建议：
+
+## 1. 状态管理 (State Management)
+**当前状态**：大部分核心状体（如图片上传列表、选择的参数、模板等）均使用组件内的 `useState` 管理。页头组件（如配额、API Key 配置）与具体功能页面之间缺乏状态共享。
+**优化建议**：
+- 引入全局状态管理方案（如 **Zustand** 或 **React Context**）。
+- 建立全局 `UserStore` (管理 Token、可用算力配额)、`AssetStore` (管理全局上传的临时图片资源或服务器返回的资产 URL)。
+- 这样可以避免在多个页面间重复上传或通过查询参数(Query params)繁琐地传递数据。
+
+## 2. API 数据拉取与缓存 (Data Fetching & Caching)
+**当前状态**：目前功能页面中的生成过程使用 `setTimeout` 模拟延迟，并没有真正的数据拉取层。
+**优化建议**：
+- 建议使用 **SWR** 或 **React Query (@tanstack/react-query)** 来管理所有的 GET 请求（如获取历史记录、获取素材库列表、获取模板库）。
+- 这两个库内置了 Loading 状态、Error 重试、以及页面聚焦时重新验证 (revalidate on focus) 的能力，能极大减少 useEffect 中手动控制 `loading` 的样板代码。
+- 对于 POST/生成类请求，建议在 `lib/api/` 下封装统一的 `fetchClient`，全局拦截 401/403 等鉴权错误。
+
+## 3. 表单校验与数据结构 (Form Validation & Typing)
+**当前状态**：前端发送给 "Mock" 处理的参数（如 `skinTone`, `bodyType`）依赖简单的字符串绑定，缺乏预校验。
+**优化建议**：
+- 引入 **Zod** 和 **React Hook Form**。在向后端发送复杂载荷（如 AI 模特定制的几十项参数组合、生成 Prompt 的图片 + 需求字串）前，进行严格的结构化校验。
+- 在根目录建立 `types/api.d.ts` 或在 `lib/types` 集中定义所有的接口类型（如 `Asset`, `GenerationTask`, `HistoryItem`），保证前后端 TypeScript 接口的完全一致性 (End-to-end type safety)。
+
+## 4. 任务轮询与 WebSocket (Task Polling / Async Generation)
+**当前状态**：点击“生成”后，UI 显示 loading 并在固定时间后展示结果。
+**优化建议**：
+- 后端的 AI 生图服务（如 fal-ai/idm-vton）通常耗时较久（10秒 - 1分钟不等）。后端的架构设计很可能采用异步任务队列（提交任务 -> 返回 TaskID -> 轮询/回调获取结果）。
+- 前端需要准备对应的**轮询机制 (Polling)**或接入 **WebSocket** / **SSE (Server-Sent Events)**。
+- 建议：将当前的 `loading` 状态升级为 `progress` 步进状态，通过查询 TaskID 接口动态更新进度条，增强长耗时任务的用户转化体验。
+
+## 5. 错误处理与 UI 反馈 (Error Handling & Toast)
+**当前状态**：使用 `sonner` 的 `toast.success` 和 `toast.error`，但错误信息多为硬编码的“请求失败”。
+**优化建议**：
+- 后端需要定义标准化的高级错误模型，例如：`{ code: "QUOTA_EXCEEDED", message: "可用积分不足", details: {...} }`。
+- 前端在统一的请求拦截器中捕获这些错误，并根据错误码展示对应的友好提示或引导弹窗（如引导前往充值或更换 API Key）。
+
+## 6. 文件上传机制 (File Upload Architecture)
+**当前状态**：图片在前端通过 `URL.createObjectURL` 转化为本地临时 URL 预览，并没有上传到服务器。
+**优化建议**：
+- 大文件和多图片（如 4 张 4K 级别的参考图）直接在 API 请求体中 Base64 传递会导致 Payload 过大，容易引发 `413 Payload Too Large` 错误。
+- **推荐架构**：后端提供 AWS S3 / 阿里云 OSS 的 **预签名 URL (Presigned URL)** 接口。前端先将图片直传至云存储，拿到 URL 后，仅将该 URL 传给后端的 AI 处理接口。这能极大减轻 Node.js (Next.js API route) 服务器的流量和内存压力。

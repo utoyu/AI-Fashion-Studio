@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -223,8 +223,24 @@ export default function PhotoStudioPage() {
     // Lightbox State
     const [lightboxData, setLightboxData] = useState<{ itemIndex: number, imageIndex: number } | null>(null)
 
+    interface HistoryItem {
+        id: string | number;
+        creator: string;
+        date: string;
+        ratio: string;
+        mainImg: string;
+        sources: string[];
+        prompt: string;
+        sceneId?: string;
+        modelId?: string;
+        topId?: string;
+        innerId?: string;
+        bottomId?: string;
+        isArchived?: boolean;
+    }
+
     // History items state
-    const [historyItems, setHistoryItems] = useState([
+    const [historyItems, setHistoryItems] = useState<HistoryItem[]>([
         {
             id: 35794,
             creator: "uto (ID: 20127)",
@@ -253,6 +269,45 @@ export default function PhotoStudioPage() {
             prompt: "Executive lifestyle photography, western male model walking in a luxury skyscraper office. Sunlight streaming through windows, blurred city skyline, navy blue pinstripe suit, realistic movement."
         },
     ])
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("archived_studio_images")
+            if (stored) {
+                const archives: any[] = JSON.parse(stored)
+                const archiveIds = new Set(archives.map(a => a.id))
+                setHistoryItems(prev => prev.map(hi => ({
+                    ...hi,
+                    isArchived: archiveIds.has(hi.id)
+                })))
+            }
+        } catch (e) { }
+    }, [])
+
+    const toggleArchive = (item: HistoryItem) => {
+        try {
+            const stored = localStorage.getItem("archived_studio_images")
+            let archives: any[] = stored ? JSON.parse(stored) : []
+
+            const isAlreadyArchived = archives.some(a => a.id === item.id)
+            if (isAlreadyArchived) {
+                archives = archives.filter(a => a.id !== item.id)
+                alert("已取消收藏并从归档移除")
+            } else {
+                archives.push({
+                    ...item,
+                    isArchived: true
+                })
+                alert("收藏成功！该图片已归档至对应素材关联库。")
+            }
+            localStorage.setItem("archived_studio_images", JSON.stringify(archives))
+
+            setHistoryItems(prev => prev.map(hi => hi.id === item.id ? { ...hi, isArchived: !isAlreadyArchived } : hi))
+        } catch (e) {
+            console.error(e)
+            alert("归档操作失败")
+        }
+    }
 
     // Methods
     const handleBlockClick = (blockId: string, blockType: string) => {
@@ -366,20 +421,26 @@ export default function PhotoStudioPage() {
             // Simulation of image generation
             await new Promise(resolve => setTimeout(resolve, 2000))
 
-            const newId = Math.floor(Math.random() * 90000) + 10000
+            const timestamp = new Date().toISOString().replace(/[^\d]/g, '').slice(0, 14)
+            const newId = `IMG-${timestamp}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
             const now = new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().split(' ')[0]
 
             // Get sources from selections
             const sources = Object.values(selections).map((s: any) => s.src).filter(Boolean) as string[]
 
-            const newItem = {
+            const newItem: HistoryItem = {
                 id: newId,
                 creator: "uto (ID: 20127)",
                 date: now,
                 ratio: ratio,
                 mainImg: (selections.model?.src || selections.top?.src || selections.inner?.src || "/images/assets/model-asian.png") as string,
                 sources: sources.slice(0, 4),
-                prompt: imagePrompt
+                prompt: imagePrompt,
+                sceneId: selections.scene?.id,
+                modelId: selections.model?.id,
+                topId: selections.top?.id,
+                innerId: selections.inner?.id,
+                bottomId: selections.bottom?.id,
             }
 
             setHistoryItems(prev => [newItem, ...prev])
@@ -396,7 +457,7 @@ export default function PhotoStudioPage() {
     return (
         <div className="flex flex-col h-full w-full overflow-hidden text-sm">
             {/* Header */}
-            <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-8 bg-white z-20">
+            <div className="flex h-20 shrink-0 items-center justify-between border-b border-border pl-8 pr-[400px] bg-white z-20">
                 <div>
                     <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">摄影室</h1>
                     <p className="text-sm text-muted-foreground mt-1">专业AI摄影，自定义多属性资产进行精细化成片创作</p>
@@ -562,7 +623,7 @@ export default function PhotoStudioPage() {
                                                 >
                                                     <div className={cn(
                                                         "w-[18px] h-[18px] rounded-[4px] flex items-center justify-center shrink-0 border transition-colors",
-                                                        ratio === opt.value ? "bg-[#6c5dd3] border-[#6c5dd3] text-white" : "border-slate-300 bg-white"
+                                                        ratio === opt.value ? "bg-primary border-primary text-white" : "border-slate-300 bg-white"
                                                     )}>
                                                         {ratio === opt.value && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                                                     </div>
@@ -586,12 +647,12 @@ export default function PhotoStudioPage() {
                             </div>
 
                             <div className="flex flex-col h-[32px] w-[30px] gap-1 shrink-0">
-                                <button onClick={() => setCount(c => Math.min(10, c + 1))} className="flex-1 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-[6px] text-[#6c5dd3] transition-colors border border-slate-100">
+                                <button onClick={() => setCount(c => Math.min(10, c + 1))} className="flex-1 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-[6px] text-primary transition-colors border border-slate-100">
                                     <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M4 0L8 5H0L4 0Z" fill="currentColor" />
                                     </svg>
                                 </button>
-                                <button onClick={() => setCount(c => Math.max(1, c - 1))} className="flex-1 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-[6px] text-[#6c5dd3] transition-colors border border-slate-100">
+                                <button onClick={() => setCount(c => Math.max(1, c - 1))} className="flex-1 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-[6px] text-primary transition-colors border border-slate-100">
                                     <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M4 5L0 0H8L4 5Z" fill="currentColor" />
                                     </svg>
@@ -672,7 +733,7 @@ export default function PhotoStudioPage() {
                     {/* Bottom Sticky Action Bar */}
                     <div className="mt-auto flex pt-5 border-t border-slate-100 bg-white sticky bottom-0 z-20">
                         <Button
-                            className="w-full bg-[#6c5dd3] hover:bg-[#5a4cb5] text-white shadow-md shadow-[#6c5dd3]/20 text-[13px] font-bold h-10 tracking-widest transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                            className="w-full bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 text-[13px] font-bold h-10 tracking-widest transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                             onClick={handleSubmitCreation}
                             disabled={isSubmitting || !imagePrompt}
                         >
@@ -737,9 +798,9 @@ export default function PhotoStudioPage() {
                                     {/* Info & Sources */}
                                     <div className="flex-1">
                                         <div className="flex items-center text-[11px] text-slate-400 mb-4 bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
-                                            任务ID <span className="text-[#6c5dd3] bg-[#6c5dd3]/10 px-1.5 py-0.5 rounded ml-1.5 mr-3 font-mono">{item.id}</span>
+                                            任务ID <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-1.5 mr-3 font-mono">{item.id}</span>
                                             <span className="border-r h-2.5 mr-3 border-slate-300"></span>
-                                            创建人 <span className="text-[#6c5dd3] bg-[#6c5dd3]/10 px-1.5 py-0.5 rounded ml-1.5 mr-3">{item.creator}</span>
+                                            创建人 <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-1.5 mr-3">{item.creator}</span>
                                             <span className="border-r h-2.5 mr-3 border-slate-300"></span>
                                             {item.date}
                                         </div>
@@ -757,26 +818,17 @@ export default function PhotoStudioPage() {
                                         </div>
 
                                         <div className="mb-6">
-                                            <h4 className="text-[10px] font-bold text-[#6c5dd3] uppercase tracking-wider mb-2 flex items-center gap-1.5 px-0.5">
+                                            <h4 className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2 flex items-center gap-1.5 px-0.5">
                                                 <div className="w-1 h-1 bg-primary rounded-full" /> Prompt 指示词
                                             </h4>
-                                            <div className="bg-[#f8f9fa] rounded-xl p-3 border border-slate-100 group-hover:border-primary/20 transition-all duration-300">
+                                            <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 group-hover:border-primary/20 transition-all duration-300">
                                                 <p className="text-[12px] text-slate-600 italic leading-relaxed line-clamp-2 group-hover:line-clamp-none">
                                                     {item.prompt}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        {/* Actions */}
                                         <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-[11px] font-bold text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all"
-                                                onClick={() => router.push(`/dashboard/smart-retouch?src=${encodeURIComponent(item.mainImg)}`)}
-                                            >
-                                                <Wand2 className="w-3 h-3 mr-1.5" /> 发送至智能精修
-                                            </Button>
                                             <Button variant="outline" size="sm" className="h-8 text-[11px] font-medium text-slate-600 border-slate-200">
                                                 <RefreshCw className="w-3 h-3 mr-1.5" /> 重新生成
                                             </Button>
@@ -786,7 +838,12 @@ export default function PhotoStudioPage() {
 
                                             <div className="flex items-center gap-1.5 ml-2">
                                                 <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50"><Download className="w-3.5 h-3.5" /></button>
-                                                <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-400 hover:text-yellow-500 hover:bg-slate-50"><Star className="w-3.5 h-3.5" /></button>
+                                                <button
+                                                    className={cn("w-8 h-8 flex items-center justify-center rounded border transition-colors", item.isArchived ? "bg-yellow-50 border-yellow-200 text-yellow-500" : "border-slate-200 text-slate-400 hover:text-yellow-500 hover:bg-slate-50")}
+                                                    onClick={() => toggleArchive(item)}
+                                                >
+                                                    <Star className={cn("w-3.5 h-3.5", item.isArchived && "fill-yellow-500")} />
+                                                </button>
                                                 <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-slate-50"><Trash2 className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </div>
@@ -867,7 +924,7 @@ export default function PhotoStudioPage() {
                                     onClick={() => setModelDetailTab(tab.id as any)}
                                     className={cn(
                                         "flex-1 text-sm font-medium transition-colors border-b-2 pb-2",
-                                        modelDetailTab === tab.id ? "text-[#5a4cb5] border-[#5a4cb5]" : "text-slate-500 hover:text-slate-800 border-transparent"
+                                        modelDetailTab === tab.id ? "text-primary border-primary" : "text-slate-500 hover:text-slate-800 border-transparent"
                                     )}
                                 >
                                     {tab.label}
@@ -927,7 +984,7 @@ export default function PhotoStudioPage() {
 
                         <div className="h-[72px] shrink-0 border-t flex items-center justify-end px-6 gap-3 bg-white">
                             <Button variant="outline" className="w-[120px] font-medium border-slate-200" onClick={() => setIsModelDetailsOpen(false)}>取消</Button>
-                            <Button className="w-[120px] font-medium bg-[#5a4cb5] hover:bg-[#4a3ea3]" onClick={() => setIsModelDetailsOpen(false)}>确定</Button>
+                            <Button className="w-[120px] font-medium bg-primary hover:bg-primary/90" onClick={() => setIsModelDetailsOpen(false)}>确定</Button>
                         </div>
                     </DialogContent>
                 </Dialog>
