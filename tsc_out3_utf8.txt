@@ -1,0 +1,2 @@
+﻿.next/types/validator.ts(80,39): error TS2307: Cannot find module '../../app/dashboard/image-tools/page.js' or its corresponding type declarations.
+.next/types/validator.ts(107,39): error TS2307: Cannot find module '../../app/dashboard/smart-retouch/page.js' or its corresponding type declarations.

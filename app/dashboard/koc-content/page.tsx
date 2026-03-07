@@ -35,7 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-
+import { mockDbAssets } from "@/lib/mock-data"
 const platforms = [
   { id: "xiaohongshu", label: "小红书", color: "bg-[#FF2442]", icon: "XHS" },
   { id: "douyin", label: "抖音", color: "bg-black", icon: "DY" },
@@ -54,69 +54,6 @@ const toneOptions = [
   { id: "wise", label: "睿智儒雅", desc: "文化底蕴、绅士感" },
   { id: "urban", label: "都会干练", desc: "现代、利落、律政精英" },
   { id: "minimalist", label: "极简主义", desc: "不费力的声明感" },
-]
-
-const mockDbAssets = [
-  {
-    id: "M001-GRM",
-    type: "garment",
-    src: "/images/assets/suit.png",
-    title: "意式深灰格纹西装",
-    prompt: "High-end product photography of a men's Italian charcoal grey suit, wool texture, plaid pattern, professional studio lighting, macro details, high resolution.",
-    attributes: {
-      composition: "90% 羊毛, 10% 蚕丝",
-      features: "此款时尚灰咖色雅致格纹套装，高含毛高品辅料，全里工艺，经典二粒扣",
-      care: "干洗, 不可漂白, 低温熨烫",
-      service: "七天无理由退换货",
-      size: "L, XL, XXL",
-      price: "¥ 1299.00"
-    }
-  },
-  {
-    id: "M002-GRM",
-    type: "garment",
-    src: "/images/assets/shirt.png",
-    title: "雅致白衬衫与真丝领带",
-    prompt: "Crisp white business shirt with a royal blue silk tie, isolated on white background, sharp focus.",
-    attributes: {
-      composition: "主要材质: 新疆长绒棉100%",
-      features: "免烫工艺，持久挺括\n人体工学立体剪裁\n抗菌防臭处理",
-      care: "最高洗涤温度30℃，常规程序\n不可漂白\n悬挂晾干\n熨斗底板最高温度110℃",
-      service: "七天无理由退换\n精美礼盒包装",
-      size: "38 - 44 领围",
-      price: "¥ 399.00"
-    }
-  },
-  {
-    id: "GRM-003",
-    type: "garment",
-    src: "/images/assets/business/suit_navy_blue.png",
-    title: "正装深蓝西装",
-    prompt: "Navy blue executive suit, slim fit, 100% wool, front view on ghost mannequin, expensive feel, realistic shadows.",
-    attributes: {
-      composition: "100% 羊毛",
-      features: "经典修身剪裁，平驳头两粒扣设计，面料挺括，光泽高级",
-      care: "仅限干洗",
-      service: "提供终身免费改衣服务",
-      size: "M, L, XL, XXL",
-      price: "¥ 2899.00"
-    }
-  },
-  {
-    id: "GRM-004",
-    type: "garment",
-    src: "/images/assets/batch2/garments/shirt_white_main.png",
-    title: "免烫极简白衬衫",
-    prompt: "Ultra-clean white business shirt, wrinkle-free cotton, spread collar, minimalist design, high-end retail photography.",
-    attributes: {
-      composition: "100% 精梳长绒棉",
-      features: "意式小方领，修身裁剪，无痕拼接工艺",
-      care: "不可漂白，中温熨烫",
-      service: "30天质保服务",
-      size: "S, M, L, XL",
-      price: "¥ 699.00"
-    }
-  }
 ]
 
 const sampleResults = [

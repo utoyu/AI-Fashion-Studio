@@ -42,23 +42,13 @@ import { UploadDropzone } from "@/components/dashboard/upload-dropzone"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { IMAGE_TOOL_MODE_PROMPTS, type ImageToolMode, MANUAL_MODES } from "@/lib/constants/image-tool-prompts"
+import { mockDbAssets } from "@/lib/mock-data"
 
 const spliceTemplates = [
     { id: "split-2", label: "左右对半", desc: "经典对比排版", slots: 2 },
     { id: "layout-3", label: "三图杂志风", desc: "主次分明构图", slots: 3 },
     { id: "grid-4", label: "时尚四宫格", desc: "全方位多角展示", slots: 4 },
     { id: "detail-6", label: "细节瀑布流", desc: "精锐细节捕捉", slots: 6 },
-]
-
-const mockDbAssets = [
-    { id: "M001", type: "garment", src: "/images/assets/suit.png", title: "意式西装" },
-    { id: "M002", type: "garment", src: "/images/assets/shirt.png", title: "雅致白衬衫" },
-    { id: "M003", type: "garment", src: "/images/assets/business/suit_navy_blue.png", title: "深蓝西装" },
-    { id: "M004", type: "model", src: "/images/assets/model-asian.png", title: "亚洲男模" },
-    { id: "M005", type: "model", src: "/images/assets/model-western.png", title: "欧美男模" },
-    { id: "M006", type: "background", src: "/images/assets/bg-office.png", title: "行政办公室" },
-    { id: "M007", type: "background", src: "/images/assets/bg-studio.png", title: "极简影棚" },
-    { id: "M008", type: "garment", src: "/images/assets/pants.png", title: "商务西裤" },
 ]
 
 export default function ManualRetouchPage() {

@@ -1,0 +1,6 @@
+﻿.next/types/validator.ts(80,39): error TS2307: Cannot find module '../../app/dashboard/image-tools/page.js' or its corresponding type declarations.
+.next/types/validator.ts(107,39): error TS2307: Cannot find module '../../app/dashboard/smart-retouch/page.js' or its corresponding type declarations.
+app/dashboard/photo-studio/page.tsx(198,26): error TS2552: Cannot find name 'sharedMockDbAssets'. Did you mean 'mockDbAssets'?
+app/dashboard/photo-studio/page.tsx(198,49): error TS7006: Parameter 'asset' implicitly has an 'any' type.
+app/dashboard/photo-studio/page.tsx(852,41): error TS7006: Parameter 'a' implicitly has an 'any' type.
+app/dashboard/photo-studio/page.tsx(872,39): error TS7006: Parameter 'asset' implicitly has an 'any' type.

@@ -41,6 +41,7 @@ import {
 } from "lucide-react"
 
 import { aiModelsConfig, siteConfig } from "@/config/site-content"
+import { mockDbAssets as sharedMockDbAssets } from "@/lib/mock-data"
 
 // Custom Pants Icon
 const PantsIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -195,26 +196,7 @@ export default function PhotoStudioPage() {
     const [imagePrompt, setImagePrompt] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // We will hardcode some sample assets to mirror our assets page without needing a global context in this step
-    const mockDbAssets = [
-        { id: "M001-GRM", type: "garment", src: "/images/assets/suit.png", title: "高定深灰男士西装", productCategory: ["西装/套装"], prompt: "High-end product photography of a men's Italian charcoal grey suit, wool texture, plaid pattern, professional studio lighting." },
-        { id: "M002-GRM", type: "garment", src: "/images/assets/shirt.png", title: "雅致白衬衫", productCategory: ["上装", "内搭"], prompt: "Crisp white business shirt with a royal blue silk tie, isolated on white background, sharp focus." },
-        { id: "GRM-003", type: "garment", src: "/images/assets/business/suit_navy_blue.png", title: "正装深蓝西装", productCategory: ["西装/套装"], prompt: "Navy blue executive suit, slim fit, 100% wool, front view on ghost mannequin." },
-        { id: "GRM-004", type: "garment", src: "/images/assets/batch2/garments/shirt_white_main.png", title: "免烫极简白衬衫", productCategory: ["上装", "内搭"], prompt: "Ultra-clean white business shirt, wrinkle-free cotton, spread collar, minimalist design." },
-        // Bottoms
-        { id: "GRM-005", type: "garment", src: "/images/assets/pants.png", title: "商务黑色西裤", productCategory: ["下装"], prompt: "Tailored black dress pants for men, straight leg, luxury wool fabric, studio lighting." },
-        { id: "GRM-006", type: "garment", src: "/images/assets/batch2/garments/pants_grey.png", title: "雅致灰西裤", productCategory: ["下装"], prompt: "Elegant charcoal grey wool trousers, slim fit, professional photography, neutral background." },
-        // Accessories
-        { id: "ACC-001", type: "garment", src: "/images/assets/watch.png", title: "高端商务腕表", productCategory: ["领带/配饰"], prompt: "Close-up of a luxury silver watch with black leather strap, sapphire glass, macro photography, soft lighting." },
-        { id: "ACC-002", type: "garment", src: "/images/assets/glasses.png", title: "复古半框眼镜", productCategory: ["领带/配饰"], prompt: "Half-frame glasses with wood or horn material, vintage style, top-down product photography." },
-
-        { id: "MDL-AMB-MAIN", type: "model", src: "/images/assets/business/model_brand_ambassador_primary.png", title: "品牌首席代言人-虚拟资产", prompt: "A high-end fashion photograph of a handsome and sophisticated Asian male model in his 30s, wearing a premium tailored navy blue business suit, standing in a luxury modern office with floor-to-ceiling windows showing a city skyline at sunset. Professional studio lighting, 8k resolution, cinematic atmosphere, representing a brand ambassador." },
-        { id: "M003-MDL", type: "model", src: "/images/assets/model-asian.png", title: "成熟亚洲男性模特", prompt: "Professional portrait of a middle-aged Asian male model, confident expression, high-end fashion lighting." },
-        { id: "M004-MDL", type: "model", src: "/images/assets/model-western.png", title: "欧美街拍男模特", prompt: "Street style portrait of a tall western male model, walking in urban city, natural sunlight." },
-        { id: "MDL-DIGI-01", type: "model", src: "/images/assets/business/digital_ambassador_3view.png", title: "数字孪生代言人-三视图", prompt: "A high-fidelity 3D digital male brand ambassador for a menswear brand. The avatar looks like a sophisticated 30-year-old Asian man with a sharp jawline and professional grooming. He is shown from three angles (front, side, profile) in a minimalist grid layout. He is wearing a white business shirt. Futuristic digital texture, clean white background. 8k resolution." },
-        { id: "M005-BGD", type: "background", src: "/images/assets/bg-office.png", title: "高层办公室背景", prompt: "Modern top-floor office interior with floor-to-ceiling windows, city skyline visible outside, blurred background." },
-        { id: "M006-BGD", type: "background", src: "/images/assets/bg-studio.png", title: "极简高级纯色棚拍背景", prompt: "Minimalist photography studio background, neutral grey color, soft cyclorama wall." },
-    ]
+    const mockDbAssets = sharedMockDbAssets;
 
     // Modal state for "More Details" model adjustment
     const [isModelDetailsOpen, setIsModelDetailsOpen] = useState(false)
@@ -868,7 +850,7 @@ export default function PhotoStudioPage() {
 
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-4 gap-4">
                             {mockDbAssets
-                                .filter(a => {
+                                .filter((a: any) => {
                                     // Base type filtering
                                     if (assetPickerType !== '' && assetPickerType !== 'text' && a.type !== assetPickerType) return false;
 
@@ -888,7 +870,7 @@ export default function PhotoStudioPage() {
                                     }
                                     return true;
                                 })
-                                .map((asset) => (
+                                .map((asset: any) => (
                                     <div
                                         key={asset.id}
                                         onClick={() => selectAssetAndClose(asset)}

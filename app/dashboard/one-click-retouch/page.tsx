@@ -45,6 +45,7 @@ import { UploadDropzone } from "@/components/dashboard/upload-dropzone"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { IMAGE_TOOL_MODE_PROMPTS, type ImageToolMode, ONE_CLICK_MODES } from "@/lib/constants/image-tool-prompts"
+import { mockDbAssets } from "@/lib/mock-data"
 
 const expandRatios = [
     { id: "1:1", label: "1:1", desc: "正方形 (Instagram/主图)", icon: Square },
@@ -53,18 +54,6 @@ const expandRatios = [
     { id: "16:9", label: "16:9", desc: "高清宽屏 (Banner/封面)", icon: RectangleHorizontal },
     { id: "9:16", label: "9:16", desc: "沉浸手机屏 (抖音/竖屏广告)", icon: Smartphone },
 ]
-
-const mockDbAssets = [
-    { id: "M001", type: "garment", src: "/images/assets/suit.png", title: "意式西装" },
-    { id: "M002", type: "garment", src: "/images/assets/shirt.png", title: "雅致白衬衫" },
-    { id: "M003", type: "garment", src: "/images/assets/business/suit_navy_blue.png", title: "深蓝西装" },
-    { id: "M004", type: "model", src: "/images/assets/model-asian.png", title: "亚洲男模" },
-    { id: "M005", type: "model", src: "/images/assets/model-western.png", title: "欧美男模" },
-    { id: "M006", type: "background", src: "/images/assets/bg-office.png", title: "行政办公室" },
-    { id: "M007", type: "background", src: "/images/assets/bg-studio.png", title: "极简影棚" },
-    { id: "M008", type: "garment", src: "/images/assets/pants.png", title: "商务西裤" },
-]
-
 export default function OneClickRetouchPage() {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<ImageToolMode>("white_bg")
