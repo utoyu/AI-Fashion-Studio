@@ -1,3 +1,0 @@
-.next/types/validator.ts(80,39): error TS2307: Cannot find module '../../app/dashboard/model-generation/page.js' or its corresponding type declarations.
-app/dashboard/assets/related/[id]/page.tsx(50,58): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-  Type 'undefined' is not assignable to type 'string'.

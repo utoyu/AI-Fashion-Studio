@@ -1,106 +1,199 @@
-export const mockDbAssets = [
+const rawAssets = [
     {
-        id: "M001", type: "garment", src: "/images/assets/suit.png", title: "意式西装",
-        prompt: "A highly detailed wide shot of an Italian bespoke suit, charcoal grey... ",
+        id: "11911",
+        type: "garment",
+        src: "/images/assets/suit.png",
+        title: "意式深灰格纹西装",
+        description: "高支羊毛免烫面料，展现质感的深灰平铺。",
+        prompt: "High-end product photography of a men's Italian charcoal grey suit, wool texture, plaid pattern, professional studio lighting, macro details, high resolution.",
+        productNum: "LS-2024-001",
+        productPrice: "¥ 1299.00",
+        productSize: "L, XL, XXL",
+        productCategory: ["上装", "西装/套装"],
+        brandInfo: "Luxury Studio",
+        salesCount: "156",
+        composition: "90% 羊毛, 10% 蚕丝",
+        designFeatures: "此款时尚灰咖色雅致格纹套装，高含毛高品辅料，全里（粘合衬）工艺，8.5cm枪驳头，经典二粒扣，斜圆角。",
+        washMethod: "干洗, 不可漂白, 低温熨烫",
+        afterSales: "7天无理由退换货",
+        pos1: "衣领位置",
+        pos2: "袖口细节",
+        pos3: "扣眼缝制",
+        pos4: "内饰口袋",
+        pos5: "后背开叉",
+        wechatLink: "https://shop.wechat.com/s/123",
+        pinduoduoLink: "https://mobile.yangkeduo.com/goods.php?goods_id=456",
+        taobaoLink: "https://item.taobao.com/item.htm?id=789",
+        creator: "uto (ID: 20127)",
+        createTime: "2026-03-02 15:29:45",
+        modifier: "uto (ID: 20127)",
+        modifyTime: "2026-03-02 15:39:44",
+        sleeveLength: "标准袖长",
+        bodyLength: "常规款",
+        backImg: "",
+        leftImg: "",
+        rightImg: "",
+        topImg: "",
+        bottomImg: ""
+    },
+    { id: "M002-GRM", type: "garment", src: "/images/assets/shirt.png", title: "雅致白衬衫与真丝领带", description: "全棉抗皱白衬衫搭配高质感藏青色真丝领带。", prompt: "Crisp white business shirt with a royal blue silk tie, isolated on white background, sharp focus, consistent lighting.", productCategory: ["上装"] },
+    {
+        id: "GRM-003",
+        type: "garment",
+        src: "/images/assets/business/suit_navy_blue.png",
+        title: "正装深蓝西装",
+        description: "商务精英必选，修身版型深蓝色高级毛料。",
+        prompt: "Navy blue executive suit, slim fit, 100% wool, front view on ghost mannequin, expensive feel, realistic shadows.",
+        productNum: "BS-2024-002",
+        productPrice: "¥ 2899.00",
         productCategory: ["西装/套装"],
-        attributes: {
-            composition: "90% 羊毛, 10% 蚕丝",
-            features: "高含毛高品辅料，全里工艺，经典二粒扣",
-            care: "干洗, 不可漂白, 低温熨烫",
-            service: "七天无理由退换货",
-            size: "L, XL, XXL",
-            price: "¥ 1299.00"
-        }
+        composition: "100% 羊毛",
+        designFeatures: "经典修身剪裁，平驳头两粒扣设计，面料挺括，光泽高级。",
+        washMethod: "仅限干洗",
+        afterSales: "提供终身免费改衣服务"
     },
     {
-        id: "M002", type: "garment", src: "/images/assets/shirt.png", title: "雅致白衬衫",
-        prompt: "Crisp white dress shirt, Egyptian cotton...",
+        id: "MDL-AMB-MAIN",
+        type: "model",
+        src: "/images/assets/business/model_brand_ambassador_primary.png",
+        title: "品牌首席代言人-虚拟资产",
+        description: "品牌视觉基石，32岁亚洲男性模特，气质沉稳、冷静，具备极强的品牌统摄力。适用于年度画册、官网封面及核心产品发布。",
+        prompt: "A high-end fashion photograph of a handsome and sophisticated Asian male model in his 30s, wearing a premium tailored navy blue business suit, standing in a luxury modern office with floor-to-ceiling windows showing a city skyline at sunset. Professional studio lighting, 8k resolution, cinematic atmosphere, representing a brand ambassador.",
+        gender: "男",
+        age: "31-35岁",
+        ethnicity: "东亚",
+        height: "186-190cm",
+        weight: "76-80kg",
+        style: "正装绅士"
+    },
+    {
+        id: "MDL-AMB-001",
+        type: "model",
+        src: "/images/assets/business/model_brand_ambassador_1.png",
+        title: "阳光商务代言人-陈逸",
+        description: "28岁东亚男模，拥有阳光健康的形象与迷人的职业微笑，完美契合高端商务男装品牌调性。",
+        prompt: "Professional portrait of a 28-year-old Asian male model, friendly smile, clean-shaven, corporate style, soft key lighting, neutral studio background.",
+        gender: "男",
+        age: "26-30岁",
+        ethnicity: "东亚",
+        height: "181-185cm",
+        weight: "71-75kg",
+        style: "职场精英"
+    },
+    {
+        id: "MDL-AMB-002",
+        type: "model",
+        src: "/images/assets/business/model_brand_ambassador_2.png",
+        title: "雅致风尚代言人-佐野",
+        description: "30岁日系风格男模，气质儒雅且身身形健硕，展现出极具亲和力的国际化商务风范。",
+        prompt: "Sophisticated 30-year-old Japanese male model, elegant posture, calm expression, sharp jawline, cinematic portrait, museum interior background.",
+        gender: "男",
+        age: "26-30岁",
+        ethnicity: "东亚",
+        height: "181-185cm",
+        weight: "76-80kg",
+        style: "正装绅士"
+    },
+    {
+        id: "MDL-DIGI-001",
+        type: "model",
+        src: "/images/assets/business/digital_ambassador_3view.png",
+        title: "数字孪生代言人-三视图",
+        description: "高精度3D数字男装模特，30岁亚洲男性形象，具备极高辨识度的冷峻轮廓。包含正面、侧面、剖面三视角视图，为品牌数字化建模提供标准参考。",
+        prompt: "A high-fidelity 3D digital male brand ambassador for a menswear brand. The avatar looks like a sophisticated 30-year-old Asian man with a sharp jawline and professional grooming. He is shown from three angles (front, side, profile) in a minimalist grid layout. He is wearing a white business shirt. Futuristic digital texture, clean white background. 8k resolution.",
+        gender: "男",
+        age: "26-30岁",
+        ethnicity: "东亚",
+        height: "181-185cm",
+        weight: "71-75kg",
+        style: "精英管理"
+    },
+    {
+        id: "BGD-INTL-001",
+        type: "background",
+        src: "/images/assets/business/bg_intl_asian_male_lounge.png",
+        title: "高管奢华酒廊场景",
+        description: "资深亚洲男模在胡桃木质感的奢华酒廊中，营造高端私享的国际品牌氛围。",
+        prompt: "Interior design of a luxury private lounge, dark wood paneling, leather armchairs, ambient warm lighting, golden accents, ultra-high-end atmosphere.",
+        category: ["咖啡厅/酒廊"],
+        lighting: ["暖调环境光"],
+        style: ["品牌艺术"]
+    },
+    {
+        id: "BGD-INTL-002",
+        type: "background",
+        src: "/images/assets/business/bg_intl_asian_male_coastal.png",
+        title: "高端沿海度假场景",
+        description: "摩登亚洲男性在极简海景露台中，展示度假休闲系列的完美剪裁。",
+        prompt: "Minimalist outdoor terrace overlooking the ocean during sunset, soft orange and purple sky, luxury vacation vibe, clean architectural lines.",
+        category: ["户外露台"],
+        lighting: ["夕阳光影"],
+        style: ["水系海景"]
+    },
+    {
+        id: "BGD-INTL-003",
+        type: "background",
+        src: "/images/assets/business/bg_intl_asian_male_tech.png",
+        title: "未来科技展厅场景",
+        description: "先锋亚洲男性在极简科技感的冷调空间中，诠释功能性服饰的质感。",
+        prompt: "High-tech minimalist exhibition hall, glowing blue lines on floor, frosted glass walls, futuristic lab aesthetic, cool toned lighting.",
+        category: ["极简影棚"],
+        lighting: ["专业影棚光"],
+        style: ["现代科技"]
+    },
+    {
+        id: "BGD-INTL-004",
+        type: "background",
+        src: "/images/assets/business/bg_intl_asian_male_urban.png",
+        title: "国际都市街景巡航",
+        description: "职场精英漫步在国际化大都市街道，展现日常通勤装的高级感。",
+        prompt: "Modern city street with high-rise buildings, glass facades, clean sidewalks, bright natural daylight, bustling but professional urban environment.",
+        category: ["城市街道"],
+        lighting: ["明亮自然光"],
+        style: ["城市街景"]
+    },
+    {
+        id: "BGD-INTL-005",
+        type: "background",
+        src: "/images/assets/business/bg_intl_asian_male_mountain.png",
+        title: "山川秘境探索场景",
+        description: "在壮阔的自然景观中，由亚洲男模演绎户外奢华系列的磅礴气场。",
+        prompt: "Cinematic mountain range with misty peaks, epic natural landscape, dramatic lighting, high-end travel adventure vibe.",
+        category: ["公路/边际"],
+        lighting: ["明亮自然光"],
+        style: ["自然景观"]
+    },
+    {
+        id: "GRM-004",
+        type: "garment",
+        src: "/images/assets/batch2/garments/shirt_white_main.png",
+        title: "免烫极简白衬衫",
+        description: "职场必备单品，高支棉免烫工艺，挺括有型。",
+        prompt: "Ultra-clean white business shirt, wrinkle-free cotton, spread collar, minimalist design, high-end retail photography.",
+        productNum: "WT-S01",
+        productPrice: "¥ 699.00",
+        composition: "100% 精梳长绒棉",
+        designFeatures: "意式小方领，修身裁剪，无痕拼接工艺。",
+        washMethod: "不可漂白，中温熨烫",
+        afterSales: "30天质保服务",
         productCategory: ["上装", "内搭"],
-        attributes: {
-            composition: "100% 新疆长绒棉",
-            features: "免烫工艺，持久挺括\n人体工学立体剪裁",
-            care: "常规程序洗涤\n不可漂白",
-            service: "七天无理由退换",
-            size: "38 - 44 领围",
-            price: "¥ 399.00"
-        }
+        backImg: "/images/assets/batch2/garments/shirt_white_back.png",
+        leftImg: "/images/assets/batch2/garments/shirt_white_left.png",
+        rightImg: "/images/assets/batch2/garments/shirt_white_right.png"
     },
-    {
-        id: "M003", type: "garment", src: "/images/assets/business/suit_navy_blue.png", title: "深蓝西装",
-        prompt: "Classic navy blue business suit...",
-        productCategory: ["西装/套装"],
-        attributes: {
-            composition: "100% 羊毛",
-            features: "经典修身剪裁，平驳头两粒扣设计",
-            care: "仅限干洗",
-            service: "终身免费改衣",
-            size: "M, L, XL, XXL",
-            price: "¥ 2899.00"
-        }
-    },
-    {
-        id: "M004", type: "model", src: "/images/assets/model-asian.png", title: "亚洲男模",
-        prompt: "Professional Asian male model, short hair...",
-        productCategory: [],
-        attributes: {
-            composition: "虚拟人模型",
-            features: "成熟稳重，适合商务休闲场景",
-            care: "-",
-            service: "-",
-            size: "标准体型",
-            price: "-"
-        }
-    },
-    {
-        id: "M005", type: "model", src: "/images/assets/model-western.png", title: "欧美男模",
-        prompt: "Professional Caucasian male model, sharp jawline...",
-        productCategory: [],
-        attributes: {
-            composition: "虚拟人模型",
-            features: "五官立体，适合国际化表达",
-            care: "-",
-            service: "-",
-            size: "标准体型",
-            price: "-"
-        }
-    },
-    {
-        id: "M006", type: "background", src: "/images/assets/bg-office.png", title: "行政办公室",
-        prompt: "High-end corporate office background, floor-to-ceiling windows...",
-        productCategory: [],
-        attributes: {
-            composition: "场景资产",
-            features: "高层办公区，现代化设计",
-            care: "-",
-            service: "-",
-            size: "-",
-            price: "-"
-        }
-    },
-    {
-        id: "M007", type: "background", src: "/images/assets/bg-studio.png", title: "极简影棚",
-        prompt: "Clean minimalist photography studio background, cyclorama wall...",
-        productCategory: [],
-        attributes: {
-            composition: "场景资产",
-            features: "纯色极简，无干扰背景",
-            care: "-",
-            service: "-",
-            size: "-",
-            price: "-"
-        }
-    },
-    {
-        id: "M008", type: "garment", src: "/images/assets/pants.png", title: "商务西裤",
-        prompt: "Tailored business trousers, pleated...",
-        productCategory: ["下装"],
-        attributes: {
-            composition: "70% 羊毛, 30% 聚酯纤维",
-            features: "抗皱垂感，直筒设计，修饰腿型",
-            care: "中温熨烫，可机洗",
-            service: "30天质保",
-            size: "30, 32, 34, 36",
-            price: "¥ 599.00"
-        }
-    },
-]
+];
+
+export const mockDbAssets = rawAssets.map((asset: any) => ({
+    ...asset,
+    // Provide an empty array for productCategory if it's missing, for photo-studio logic
+    productCategory: asset.productCategory || [],
+    // Provide normalized 'attributes' for tools like koc-content that rely on them
+    attributes: {
+        composition: asset.composition || "虚拟资产属性",
+        features: asset.designFeatures || "默认资产描述",
+        care: asset.washMethod || "无限制",
+        service: asset.afterSales || "一键生成服务",
+        size: asset.productSize || "自适应规格",
+        price: asset.productPrice || "¥ 0.00"
+    }
+}));

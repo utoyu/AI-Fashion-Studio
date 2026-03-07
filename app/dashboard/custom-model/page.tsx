@@ -131,7 +131,7 @@ export default function CustomModelPage() {
       })
       setGenerating(false)
     }, 4000)
-  }, [file])
+  }, [])
 
   return (
     <div className="flex h-full flex-col bg-background">

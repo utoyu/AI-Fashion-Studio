@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -31,7 +31,7 @@ import {
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
-
+import { mockDbAssets } from "@/lib/mock-data"
 const tabs = [
     { id: "garment", label: "衣物素材", icon: Shirt },
     { id: "model", label: "模特库", icon: Users },
@@ -70,198 +70,40 @@ const MODEL_HEIGHTS = ["170-175cm", "176-180cm", "181-185cm", "186-190cm", "191-
 const MODEL_WEIGHTS = ["60-65kg", "66-70kg", "71-75kg", "76-80kg", "81-85kg", "86-90kg", "90kg以上"]
 const MODEL_STYLES = ["职场精英", "正装绅士", "运动型男", "潮流街头", "知性儒雅", "硬朗粗犷", "高端质感", "邻家男孩", "资深管理", "欧美高冷"]
 
-// Mock data mapped to types
-const initialAssets = [
-    {
-        id: "11911",
-        type: "garment",
-        src: "/images/assets/suit.png",
-        title: "意式深灰格纹西装",
-        description: "高支羊毛免烫面料，展现质感的深灰平铺。",
-        prompt: "High-end product photography of a men's Italian charcoal grey suit, wool texture, plaid pattern, professional studio lighting, macro details, high resolution.",
-        productNum: "LS-2024-001",
-        productPrice: "¥ 1299.00",
-        productSize: "L, XL, XXL",
-        productCategory: ["上装"],
-        brandInfo: "Luxury Studio",
-        salesCount: "156",
-        composition: "90% 羊毛, 10% 蚕丝",
-        designFeatures: "此款时尚灰咖色雅致格纹套装，高含毛高品辅料，全里（粘合衬）工艺，8.5cm枪驳头，经典二粒扣，斜圆角。",
-        washMethod: "干洗, 不可漂白, 低温熨烫",
-        afterSales: "7天无理由退换货",
-        pos1: "衣领位置",
-        pos2: "袖口细节",
-        pos3: "扣眼缝制",
-        pos4: "内饰口袋",
-        pos5: "后背开叉",
-        wechatLink: "https://shop.wechat.com/s/123",
-        pinduoduoLink: "https://mobile.yangkeduo.com/goods.php?goods_id=456",
-        taobaoLink: "https://item.taobao.com/item.htm?id=789",
-        creator: "uto (ID: 20127)",
-        createTime: "2026-03-02 15:29:45",
-        modifier: "uto (ID: 20127)",
-        modifyTime: "2026-03-02 15:39:44",
-        sleeveLength: "标准袖长",
-        bodyLength: "常规款",
-        backImg: "",
-        leftImg: "",
-        rightImg: "",
-        topImg: "",
-        bottomImg: ""
-    },
-    { id: "M002-GRM", type: "garment", src: "/images/assets/shirt.png", title: "雅致白衬衫与真丝领带", description: "全棉抗皱白衬衫搭配高质感藏青色真丝领带。", prompt: "Crisp white business shirt with a royal blue silk tie, isolated on white background, sharp focus, consistent lighting." },
-    {
-        id: "GRM-003",
-        type: "garment",
-        src: "/images/assets/business/suit_navy_blue.png",
-        title: "正装深蓝西装",
-        description: "商务精英必选，修身版型深蓝色高级毛料。",
-        prompt: "Navy blue executive suit, slim fit, 100% wool, front view on ghost mannequin, expensive feel, realistic shadows.",
-        productNum: "BS-2024-002",
-        productPrice: "¥ 2899.00",
-        productCategory: ["上装"],
-        composition: "100% 羊毛",
-        designFeatures: "经典修身剪裁，平驳头两粒扣设计，面料挺括，光泽高级。",
-        washMethod: "仅限干洗",
-        afterSales: "提供终身免费改衣服务"
-    },
-    {
-        id: "MDL-AMB-MAIN",
-        type: "model",
-        src: "/images/assets/business/model_brand_ambassador_primary.png",
-        title: "品牌首席代言人-虚拟资产",
-        description: "品牌视觉基石，32岁亚洲男性模特，气质沉稳、冷静，具备极强的品牌统摄力。适用于年度画册、官网封面及核心产品发布。",
-        prompt: "A high-end fashion photograph of a handsome and sophisticated Asian male model in his 30s, wearing a premium tailored navy blue business suit, standing in a luxury modern office with floor-to-ceiling windows showing a city skyline at sunset. Professional studio lighting, 8k resolution, cinematic atmosphere, representing a brand ambassador.",
-        gender: "男",
-        age: "31-35岁",
-        ethnicity: "东亚",
-        height: "186-190cm",
-        weight: "76-80kg",
-        style: "正装绅士"
-    },
-    {
-        id: "MDL-AMB-001",
-        type: "model",
-        src: "/images/assets/business/model_brand_ambassador_1.png",
-        title: "阳光商务代言人-陈逸",
-        description: "28岁东亚男模，拥有阳光健康的形象与迷人的职业微笑，完美契合高端商务男装品牌调性。",
-        prompt: "Professional portrait of a 28-year-old Asian male model, friendly smile, clean-shaven, corporate style, soft key lighting, neutral studio background.",
-        gender: "男",
-        age: "26-30岁",
-        ethnicity: "东亚",
-        height: "181-185cm",
-        weight: "71-75kg",
-        style: "职场精英"
-    },
-    {
-        id: "MDL-AMB-002",
-        type: "model",
-        src: "/images/assets/business/model_brand_ambassador_2.png",
-        title: "雅致风尚代言人-佐野",
-        description: "30岁日系风格男模，气质儒雅且身身形健硕，展现出极具亲和力的国际化商务风范。",
-        prompt: "Sophisticated 30-year-old Japanese male model, elegant posture, calm expression, sharp jawline, cinematic portrait, museum interior background.",
-        gender: "男",
-        age: "26-30岁",
-        ethnicity: "东亚",
-        height: "181-185cm",
-        weight: "76-80kg",
-        style: "正装绅士"
-    },
-    {
-        id: "MDL-DIGI-001",
-        type: "model",
-        src: "/images/assets/business/digital_ambassador_3view.png",
-        title: "数字孪生代言人-三视图",
-        description: "高精度3D数字男装模特，30岁亚洲男性形象，具备极高辨识度的冷峻轮廓。包含正面、侧面、剖面三视角视图，为品牌数字化建模提供标准参考。",
-        prompt: "A high-fidelity 3D digital male brand ambassador for a menswear brand. The avatar looks like a sophisticated 30-year-old Asian man with a sharp jawline and professional grooming. He is shown from three angles (front, side, profile) in a minimalist grid layout. He is wearing a white business shirt. Futuristic digital texture, clean white background. 8k resolution.",
-        gender: "男",
-        age: "26-30岁",
-        ethnicity: "东亚",
-        height: "181-185cm",
-        weight: "71-75kg",
-        style: "精英管理"
-    },
-    {
-        id: "BGD-INTL-001",
-        type: "background",
-        src: "/images/assets/business/bg_intl_asian_male_lounge.png",
-        title: "高管奢华酒廊场景",
-        description: "资深亚洲男模在胡桃木质感的奢华酒廊中，营造高端私享的国际品牌氛围。",
-        prompt: "Interior design of a luxury private lounge, dark wood paneling, leather armchairs, ambient warm lighting, golden accents, ultra-high-end atmosphere.",
-        category: ["咖啡厅/酒廊"],
-        lighting: ["暖调环境光"],
-        style: ["品牌艺术"]
-    },
-    {
-        id: "BGD-INTL-002",
-        type: "background",
-        src: "/images/assets/business/bg_intl_asian_male_coastal.png",
-        title: "高端沿海度假场景",
-        description: "摩登亚洲男性在极简海景露台中，展示度假休闲系列的完美剪裁。",
-        prompt: "Minimalist outdoor terrace overlooking the ocean during sunset, soft orange and purple sky, luxury vacation vibe, clean architectural lines.",
-        category: ["户外露台"],
-        lighting: ["夕阳光影"],
-        style: ["水系海景"]
-    },
-    {
-        id: "BGD-INTL-003",
-        type: "background",
-        src: "/images/assets/business/bg_intl_asian_male_tech.png",
-        title: "未来科技展厅场景",
-        description: "先锋亚洲男性在极简科技感的冷调空间中，诠释功能性服饰的质感。",
-        prompt: "High-tech minimalist exhibition hall, glowing blue lines on floor, frosted glass walls, futuristic lab aesthetic, cool toned lighting.",
-        category: ["极简影棚"],
-        lighting: ["专业影棚光"],
-        style: ["现代科技"]
-    },
-    {
-        id: "BGD-INTL-004",
-        type: "background",
-        src: "/images/assets/business/bg_intl_asian_male_urban.png",
-        title: "国际都市街景巡航",
-        description: "职场精英漫步在国际化大都市街道，展现日常通勤装的高级感。",
-        prompt: "Modern city street with high-rise buildings, glass facades, clean sidewalks, bright natural daylight, bustling but professional urban environment.",
-        category: ["城市街道"],
-        lighting: ["明亮自然光"],
-        style: ["城市街景"]
-    },
-    {
-        id: "BGD-INTL-005",
-        type: "background",
-        src: "/images/assets/business/bg_intl_asian_male_mountain.png",
-        title: "山川秘境探索场景",
-        description: "在壮阔的自然景观中，由亚洲男模演绎户外奢华系列的磅礴气场。",
-        prompt: "Cinematic mountain range with misty peaks, epic natural landscape, dramatic lighting, high-end travel adventure vibe.",
-        category: ["公路/边际"],
-        lighting: ["明亮自然光"],
-        style: ["自然景观"]
-    },
-    {
-        id: "GRM-004",
-        type: "garment",
-        src: "/images/assets/batch2/garments/shirt_white_main.png",
-        title: "免烫极简白衬衫",
-        description: "职场必备单品，高支棉免烫工艺，挺括有型。",
-        prompt: "Ultra-clean white business shirt, wrinkle-free cotton, spread collar, minimalist design, high-end retail photography.",
-        productNum: "WT-S01",
-        productPrice: "¥ 699.00",
-        composition: "100% 精梳长绒棉",
-        designFeatures: "意式小方领，修身裁剪，无痕拼接工艺。",
-        washMethod: "不可漂白，中温熨烫",
-        afterSales: "30天质保服务",
-        productCategory: ["上装"],
-        backImg: "/images/assets/batch2/garments/shirt_white_back.png",
-        leftImg: "/images/assets/batch2/garments/shirt_white_left.png",
-        rightImg: "/images/assets/batch2/garments/shirt_white_right.png"
-    },
-]
 
 export default function AssetsPage() {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState("model")
+
+    // Global click listener to close all dropdowns when clicking outside
+    useEffect(() => {
+        const closeAllMenus = () => {
+            setSleeveMenuOpen(false);
+            setBodyMenuOpen(false);
+            setCategoryMenuOpen(false);
+            setSceneMenuOpen(false);
+            setLightingMenuOpen(false);
+            setElementMenuOpen(false);
+            setModelGenderOpen(false);
+            setModelAgeOpen(false);
+            setModelEthnicityOpen(false);
+            setModelHeightOpen(false);
+            setModelWeightOpen(false);
+            setModelStyleOpen(false);
+            // Close filter dropdowns
+            setFilterGenderOpen(false);
+            setFilterAgeOpen(false);
+            setFilterEthnicityOpen(false);
+            setFilterHeightOpen(false);
+            setFilterWeightOpen(false);
+            setFilterStyleOpen(false);
+        };
+        window.addEventListener('click', closeAllMenus);
+        return () => window.removeEventListener('click', closeAllMenus);
+    }, [activeTab]);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [searchQuery, setSearchQuery] = useState("")
-    const [assets, setAssets] = useState(initialAssets)
+    const [assets, setAssets] = useState(mockDbAssets)
     const [editingAsset, setEditingAsset] = useState<any>(null)
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
     const [zoom, setZoom] = useState(100)
@@ -317,8 +159,6 @@ export default function AssetsPage() {
     const [filterHeightOpen, setFilterHeightOpen] = useState(false)
     const [filterWeightOpen, setFilterWeightOpen] = useState(false)
     const [filterStyleOpen, setFilterStyleOpen] = useState(false)
-
-    // Global click listener to close all dropdowns when clicking outside
     useEffect(() => {
         const closeAllMenus = () => {
             setSleeveMenuOpen(false);
@@ -343,7 +183,7 @@ export default function AssetsPage() {
         };
         window.addEventListener('click', closeAllMenus);
         return () => window.removeEventListener('click', closeAllMenus);
-    }, []);
+    }, [activeTab]);
 
     const filteredAssets = assets.filter(a => {
         if (a.type !== activeTab) return false;
@@ -933,7 +773,7 @@ export default function AssetsPage() {
                                             </div>
                                             <div className="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
                                                 <p className="text-[11px] text-slate-400 leading-relaxed mb-1">
-                                                    提醒AI试穿的时候需要注意哪些位置，只需要说出位置就可以了，无需描述细节。比如你可以说"注意领口位置"或者"注意裤腰前方位置"等等。
+                                                    提醒AI试穿的时候需要注意哪些位置，只需要说出位置就可以了，无需描述细节。比如你可以说&quot;注意领口位置&quot;或者&quot;注意裤腰前方位置&quot;等等。
                                                 </p>
                                                 {[1, 2, 3, 4, 5].map((idx) => (
                                                     <div key={idx} className="flex items-center justify-between group/field py-1 border-b border-slate-50 last:border-0">
