@@ -35,8 +35,10 @@
 - 后端需要定义标准化的高级错误模型，例如：`{ code: "QUOTA_EXCEEDED", message: "可用积分不足", details: {...} }`。
 - 前端在统一的请求拦截器中捕获这些错误，并根据错误码展示对应的友好提示或引导弹窗（如引导前往充值或更换 API Key）。
 
-## 6. 文件上传机制 (File Upload Architecture)
-**当前状态**：图片在前端通过 `URL.createObjectURL` 转化为本地临时 URL 预览，并没有上传到服务器。
-**优化建议**：
-- 大文件和多图片（如 4 张 4K 级别的参考图）直接在 API 请求体中 Base64 传递会导致 Payload 过大，容易引发 `413 Payload Too Large` 错误。
-- **推荐架构**：后端提供 AWS S3 / 阿里云 OSS 的 **预签名 URL (Presigned URL)** 接口。前端先将图片直传至云存储，拿到 URL 后，仅将该 URL 传给后端的 AI 处理接口。这能极大减轻 Node.js (Next.js API route) 服务器的流量和内存压力。
+### ✅ [DONE] 路径 A：解决最致命的物理阻塞 —— 接入云端对象存储 (OSS)
+**实施详情**：已通过 **Supabase Storage** 全面替换本地 `URL.createObjectURL` 逻辑。
+- **状态**：全站核心页面（素材库、摄影室、电商组图、模特定制、一键精修）已完成云端直传集成。
+- **意义**：消除了 `413 Payload Too Large` 风险，为下一阶段接入真正的 AI 生图 API 铺平了道路。
+
+### 🚀 路径 B：突破核心业务壁垒 —— 连通真实 AI 生图链路 (Server Actions)
+...

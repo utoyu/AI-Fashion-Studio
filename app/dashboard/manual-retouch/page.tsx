@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { IMAGE_TOOL_MODE_PROMPTS, type ImageToolMode, MANUAL_MODES } from "@/lib/constants/image-tool-prompts"
 import { mockDbAssets } from "@/lib/mock-data"
+import { uploadImage } from "@/lib/storage"
 
 const spliceTemplates = [
     { id: "split-2", label: "左右对半", desc: "经典对比排版", slots: 2 },
@@ -56,6 +57,13 @@ export default function ManualRetouchPage() {
     const [activeTab, setActiveTab] = useState<ImageToolMode>("swap_outfit")
     const [sourceFiles, setSourceFiles] = useState<File[]>([])
     const [referenceFiles, setReferenceFiles] = useState<File[]>([])
+
+    // Cloud URL persistence states
+    const [sourceUrls, setSourceUrls] = useState<string[]>([])
+    const [referenceUrls, setReferenceUrls] = useState<string[]>([])
+    const [isUploadingSource, setIsUploadingSource] = useState(false)
+    const [isUploadingRef, setIsUploadingRef] = useState(false)
+
     const [selectedTemplate, setSelectedTemplate] = useState("grid-4")
     const [toolPrompt, setToolPrompt] = useState("")
     const [selectedResolution, setSelectedResolution] = useState("2k")
@@ -65,8 +73,8 @@ export default function ManualRetouchPage() {
     const [pickingFor, setPickingFor] = useState<"source" | "reference">("source")
 
     const handleProcess = useCallback(() => {
-        if (sourceFiles.length === 0) return
-        if (activeTab !== "splice" && referenceFiles.length === 0) {
+        if (sourceUrls.length === 0) return
+        if (activeTab !== "splice" && referenceUrls.length === 0) {
             toast.error("请提供参考依据图片");
             return;
         }
@@ -83,7 +91,7 @@ export default function ManualRetouchPage() {
             }
             toast.success(messages[activeTab] || "处理完成")
         }, 2800)
-    }, [sourceFiles, referenceFiles, activeTab])
+    }, [sourceUrls, referenceUrls, activeTab])
 
     useEffect(() => {
         if (IMAGE_TOOL_MODE_PROMPTS[activeTab]) {
@@ -93,18 +101,38 @@ export default function ManualRetouchPage() {
 
     const selectAssetAndAdd = async (asset: any) => {
         try {
+            setIsAssetPickerOpen(false);
             const response = await fetch(asset.src);
             const blob = await response.blob();
             const file = new File([blob], asset.title || "asset.png", { type: blob.type });
 
             if (pickingFor === "source") {
                 setSourceFiles(prev => activeTab === "splice" ? [...prev, file] : [file]);
+                setIsUploadingSource(true);
+                const toastId = toast.loading(`正在转存 ${asset.title} 至云端...`);
+                try {
+                    const realUrl = await uploadImage(file);
+                    setSourceUrls(prev => activeTab === "splice" ? [...prev, realUrl] : [realUrl]);
+                    toast.success("转存云端成功", { id: toastId });
+                } catch (err) {
+                    toast.error("素材上云失败", { id: toastId });
+                } finally {
+                    setIsUploadingSource(false);
+                }
             } else {
                 setReferenceFiles([file]);
+                setIsUploadingRef(true);
+                const toastId = toast.loading(`正在转存 ${asset.title} 至云端...`);
+                try {
+                    const realUrl = await uploadImage(file);
+                    setReferenceUrls([realUrl]);
+                    toast.success("转存云端成功", { id: toastId });
+                } catch (err) {
+                    toast.error("素材上云失败", { id: toastId });
+                } finally {
+                    setIsUploadingRef(false);
+                }
             }
-
-            setIsAssetPickerOpen(false);
-            toast.success(`已添加素材: ${asset.title}`);
         } catch (err) {
             toast.error("素材加载失败");
         }
@@ -181,12 +209,23 @@ export default function ManualRetouchPage() {
                                 <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary" onClick={() => openPicker("source")}>素材库</Button>
                             </div>
                             <UploadDropzone
-                                onFileSelect={(selected) => {
+                                onFileSelect={async (selected) => {
                                     setSourceFiles(selected);
                                     setProcessed(false);
+                                    setIsUploadingSource(true);
+                                    const toastId = toast.loading("正在上传原图至云端...");
+                                    try {
+                                        const urls = await Promise.all(selected.map(f => uploadImage(f)));
+                                        setSourceUrls(urls);
+                                        toast.success("原图上云成功！", { id: toastId });
+                                    } catch (err) {
+                                        toast.error("云端上传失败", { id: toastId });
+                                    } finally {
+                                        setIsUploadingSource(false);
+                                    }
                                 }}
                                 currentFiles={sourceFiles}
-                                onClear={() => { setSourceFiles([]); setProcessed(false); }}
+                                onClear={() => { setSourceFiles([]); setSourceUrls([]); setProcessed(false); }}
                                 label={activeTab === "splice" ? "上传多张素材图" : "上传作为底图的原片"}
                             />
                         </section>
@@ -230,12 +269,24 @@ export default function ManualRetouchPage() {
                                     <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary" onClick={() => openPicker("reference")}>素材库</Button>
                                 </div>
                                 <UploadDropzone
-                                    onFileSelect={(selected) => {
-                                        setReferenceFiles(selected.slice(0, 1));
+                                    onFileSelect={async (selected) => {
+                                        const files = selected.slice(0, 1);
+                                        setReferenceFiles(files);
                                         setProcessed(false);
+                                        setIsUploadingRef(true);
+                                        const toastId = toast.loading("正在上传参考图至云端...");
+                                        try {
+                                            const url = await uploadImage(files[0]);
+                                            setReferenceUrls([url]);
+                                            toast.success("参考图上云成功！", { id: toastId });
+                                        } catch (err) {
+                                            toast.error("云端上传失败", { id: toastId });
+                                        } finally {
+                                            setIsUploadingRef(false);
+                                        }
                                     }}
                                     currentFiles={referenceFiles}
-                                    onClear={() => { setReferenceFiles([]); setProcessed(false); }}
+                                    onClear={() => { setReferenceFiles([]); setReferenceUrls([]); setProcessed(false); }}
                                     label={`上传参考${activeTab === 'swap_outfit' ? '服装' : activeTab === 'swap_face' ? '面部' : '姿势'}`}
                                 />
                             </section>
@@ -269,12 +320,12 @@ export default function ManualRetouchPage() {
                         <Button
                             size="lg"
                             className="w-full bg-primary hover:bg-primary/90 text-white gap-3 h-13 rounded-2xl shadow-lg shadow-primary/20"
-                            disabled={sourceFiles.length === 0 || processing}
+                            disabled={sourceUrls.length === 0 || processing || isUploadingSource || isUploadingRef}
                             onClick={handleProcess}
                         >
-                            {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                            {processing || isUploadingSource || isUploadingRef ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
                             <span className="font-bold tracking-widest uppercase text-xs">
-                                {processing ? "深度重构中..." : "开始手搓生成"}
+                                {isUploadingSource || isUploadingRef ? "图片上云中..." : processing ? "深度重构中..." : "开始手搓生成"}
                             </span>
                         </Button>
                     </div>
@@ -324,8 +375,15 @@ export default function ManualRetouchPage() {
                         ) : (
                             <div className="flex items-center gap-8 animate-in zoom-in-95 duration-500">
                                 <div className="flex flex-col items-center gap-3">
-                                    <div className="w-[200px] aspect-[3/4] bg-white rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden">
-                                        <Image src={URL.createObjectURL(sourceFiles[0])} alt="Source" fill className="object-cover" />
+                                    <div className="w-[200px] aspect-[3/4] bg-white rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden flex items-center justify-center">
+                                        {isUploadingSource ? (
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+                                                <span className="text-[10px] font-bold text-slate-400">传输中...</span>
+                                            </div>
+                                        ) : sourceUrls[0] ? (
+                                            <img src={sourceUrls[0]} alt="Source" className="object-cover w-full h-full" />
+                                        ) : null}
                                     </div>
                                     <span className="text-[10px] font-bold text-slate-400 uppercase">Input: Source</span>
                                 </div>
@@ -337,8 +395,15 @@ export default function ManualRetouchPage() {
 
                                 <div className="flex flex-col items-center gap-3">
                                     {activeTab !== "splice" && referenceFiles.length > 0 ? (
-                                        <div className="w-[200px] aspect-[3/4] bg-white rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden">
-                                            <Image src={URL.createObjectURL(referenceFiles[0])} alt="Ref" fill className="object-cover" />
+                                        <div className="w-[200px] aspect-[3/4] bg-white rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden flex items-center justify-center">
+                                            {isUploadingRef ? (
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+                                                    <span className="text-[10px] font-bold text-slate-400">传输中...</span>
+                                                </div>
+                                            ) : referenceUrls[0] ? (
+                                                <img src={referenceUrls[0]} alt="Ref" className="object-cover w-full h-full" />
+                                            ) : null}
                                         </div>
                                     ) : (
                                         <div className="w-[200px] aspect-[3/4] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center">

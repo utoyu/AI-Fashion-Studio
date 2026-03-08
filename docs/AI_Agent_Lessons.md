@@ -48,6 +48,20 @@
     *   **Suspense 强制隔离**：在 Next.js (App Router) 中，任何触发搜索参数解析的逻辑 **必须** 包裹在 `<Suspense>` 中。否则，在生产环境构建阶段会因为缺少客户端运行时，导致页面级错误。
     *   **多源状态机同步**：设计组件状态时，需统一“本地上传 (File/Blob CLI)”与“远程参数 (URL String)”的入口。建立 `workingImage` 统一指针，通过 `useEffect` 实时修正来源优先级。
 
+## 9. Next.js 水合一致性守卫 (Hydration Consistency)
+*   **问题**：在服务端渲染 (SSR) 且页面依赖 `localStorage` 时，若在 `useState` 初始化函数中直接读取，会导致服务端返回默认值而客户端渲染持久化值，从而引发“Hydration failed”报错。
+*   **纠正方案**：
+    *   **必须** 引入 `isHydrated` 状态锁。
+    *   **必须** 初始值设为静态默认值，在 `useEffect` (仅限客户端执行) 中载入持久化数据并开启 `isHydrated`。
+    *   读取/写入操作必须包裹在 `try-catch` 中，避免非法 JSON 内容导致页面崩溃。
+
+## 10. 云端存储错误(400)的防御性设计
+*   **挑战**：Supabase 等 OSS 在接收包含非 ASCII 字符（如中文文件名）或缺少 MIME 类型的二进制流时，会返回 400 报错。
+*   **经验**：
+    *   **文件名脱敏**：在 `lib/storage.ts` 中使用 `Date.now()` 或随机哈希替代原始文件名作为路径底座。
+    *   **后缀强校验**：不再单纯通过 `.split('.').pop()` 获取后缀，应优先解析 `blob.type` (MIME) 并通过映射表补全确切的文件后缀（如 `image/png` -> `png`）。
+    *   **Fetch 原子化**：在从 `asset.src` 转回 `Blob` 进行再处理时，必须检查 `response.ok`。
+
 ---
 *归档位置：`docs/AI_Agent_Lessons.md`*
-*记录时间：2026-03-05*
+*记录时间：2026-03-08*

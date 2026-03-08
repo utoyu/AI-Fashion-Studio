@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import Image from "next/image"
 import {
   Heart,
@@ -35,7 +35,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import { mockDbAssets } from "@/lib/mock-data"
+import { uploadImage } from "@/lib/storage"
 const platforms = [
   { id: "xiaohongshu", label: "小红书", color: "bg-[#FF2442]", icon: "XHS" },
   { id: "douyin", label: "抖音", color: "bg-black", icon: "DY" },
@@ -77,20 +79,13 @@ const sampleResults = [
 
 export default function EliteCatalogPage() {
   const [selectedAsset, setSelectedAsset] = useState<any>(null)
-  const [referenceImages, setReferenceImages] = useState<any[]>([null, null, null]) // Up to 3 additional outfit images
+  const [referenceImages, setReferenceImages] = useState<any[]>([null, null, null])
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false)
-  const [pickerTarget, setPickerTarget] = useState<"main" | "main_attributes" | number>("main") // Track which slot is being picked
+  const [pickerTarget, setPickerTarget] = useState<"main" | "main_attributes" | number>("main")
+  const [isUploadingMain, setIsUploadingMain] = useState(false)
+  const [isUploadingRefs, setIsUploadingRefs] = useState<boolean[]>([false, false, false])
 
-  // Product Attributes Form State
-  const [attributes, setAttributes] = useState({
-    composition: "",
-    features: "",
-    care: "",
-    service: "",
-    size: "",
-    price: ""
-  })
-
+  const [attributes, setAttributes] = useState({ composition: "", features: "", care: "", service: "", size: "", price: "" })
   const [selectedPlatform, setSelectedPlatform] = useState("xiaohongshu")
   const [prompt, setPrompt] = useState("")
   const [mainImageCount, setMainImageCount] = useState(3)
@@ -98,49 +93,138 @@ export default function EliteCatalogPage() {
 
   const [generating, setGenerating] = useState(false)
   const [results, setResults] = useState<any[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
 
-  // Automatically fill attributes when a main garment with data is selected
-  const handleSelectAsset = (asset: any) => {
-    if (pickerTarget === "main") {
-      setSelectedAsset(asset)
-      if (asset.attributes) {
-        setAttributes(asset.attributes)
-      } else {
-        // Reset if no attributes to avoid confusion
-        setAttributes({ composition: "", features: "", care: "", service: "", size: "", price: "" })
+  // Hydration Effect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedAsset = localStorage.getItem('koc_selected_asset');
+        if (savedAsset) setSelectedAsset(JSON.parse(savedAsset));
+
+        const savedRefs = localStorage.getItem('koc_reference_images');
+        if (savedRefs) setReferenceImages(JSON.parse(savedRefs));
+
+        const savedAttrs = localStorage.getItem('koc_attributes');
+        if (savedAttrs) setAttributes(JSON.parse(savedAttrs));
+
+        const savedPlatform = localStorage.getItem('koc_platform');
+        if (savedPlatform) setSelectedPlatform(savedPlatform);
+
+        const savedPrompt = localStorage.getItem('koc_prompt');
+        if (savedPrompt) setPrompt(savedPrompt);
+
+        const savedMainCount = localStorage.getItem('koc_main_count');
+        if (savedMainCount) setMainImageCount(parseInt(savedMainCount));
+
+        const savedDetailCount = localStorage.getItem('koc_detail_count');
+        if (savedDetailCount) setDetailImageCount(parseInt(savedDetailCount));
+      } catch (e) {
+        console.error("Failed to load KOC settings", e);
       }
-    } else if (pickerTarget === "main_attributes") {
-      // User has a local image uploaded, but wants to link it with library attributes
-      if (asset.attributes) {
-        setAttributes(asset.attributes)
-      }
-    } else {
-      const newRef = [...referenceImages]
-      newRef[pickerTarget] = asset
-      setReferenceImages(newRef)
+      setIsHydrated(true);
     }
-    setIsAssetPickerOpen(false)
+  }, []);
+
+  // Persistence Effect
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      localStorage.setItem('koc_selected_asset', JSON.stringify(selectedAsset));
+      localStorage.setItem('koc_reference_images', JSON.stringify(referenceImages));
+      localStorage.setItem('koc_attributes', JSON.stringify(attributes));
+      localStorage.setItem('koc_platform', selectedPlatform);
+      localStorage.setItem('koc_prompt', prompt);
+      localStorage.setItem('koc_main_count', mainImageCount.toString());
+      localStorage.setItem('koc_detail_count', detailImageCount.toString());
+    }
+  }, [isHydrated, selectedAsset, referenceImages, attributes, selectedPlatform, prompt, mainImageCount, detailImageCount]);
+
+  const handleSelectAsset = async (asset: any) => {
+    setIsAssetPickerOpen(false);
+
+    const toastId = toast.loading(`正在同步资产 ${asset.title} 到云端...`);
+
+    try {
+      const response = await fetch(asset.src);
+      if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
+      const blob = await response.blob();
+      // Use asset.id as a safe base for the filename
+      const safeName = `${asset.id || 'asset'}.png`;
+      const file = new File([blob], safeName, { type: blob.type });
+
+      if (pickerTarget === "main") {
+        setIsUploadingMain(true);
+        const realUrl = await uploadImage(file);
+        const cloudAsset = { ...asset, src: realUrl };
+        setSelectedAsset(cloudAsset)
+        if (asset.attributes) {
+          setAttributes(asset.attributes)
+        } else {
+          setAttributes({ composition: "", features: "", care: "", service: "", size: "", price: "" })
+        }
+        setIsUploadingMain(false);
+      } else if (pickerTarget === "main_attributes") {
+        if (asset.attributes) {
+          setAttributes(asset.attributes)
+        }
+      } else {
+        const idx = pickerTarget as number;
+        setIsUploadingRefs((prev: boolean[]) => { const n = [...prev]; n[idx] = true; return n; });
+        const realUrl = await uploadImage(file);
+        const cloudAsset = { ...asset, src: realUrl };
+        const newRef = [...referenceImages]
+        newRef[idx] = cloudAsset
+        setReferenceImages(newRef)
+        setIsUploadingRefs((prev: boolean[]) => { const n = [...prev]; n[idx] = false; return n; });
+      }
+      toast.success("同步云端成功", { id: toastId });
+    } catch (err) {
+      toast.error("云端同步失败", { id: toastId });
+      // Fallback
+      if (pickerTarget === "main") {
+        setSelectedAsset(asset)
+      } else if (typeof pickerTarget === "number") {
+        const newRef = [...referenceImages]
+        newRef[pickerTarget] = asset
+        setReferenceImages(newRef)
+      }
+    }
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: "main" | number) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: "main" | number) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = URL.createObjectURL(file)
-    const mockAsset = {
-      id: "local-" + Date.now(),
-      src: url,
-      title: "本地上传图片",
-      isLocal: true,
-      type: "uploaded"
-    }
 
-    if (target === "main") {
-      setSelectedAsset(mockAsset)
-      setAttributes({ composition: "", features: "", care: "", service: "", size: "", price: "" })
-    } else {
-      const newRef = [...referenceImages]
-      newRef[target] = mockAsset
-      setReferenceImages(newRef)
+    const toastId = toast.loading("上传云端中...");
+
+    try {
+      if (target === "main") setIsUploadingMain(true);
+      else setIsUploadingRefs((prev: boolean[]) => { const n = [...prev]; n[target] = true; return n; });
+
+      const realUrl = await uploadImage(file);
+      const mockAsset = {
+        id: "local-" + Date.now(),
+        src: realUrl,
+        title: file.name,
+        isLocal: true,
+        type: "uploaded"
+      }
+
+      if (target === "main") {
+        setSelectedAsset(mockAsset)
+        setAttributes({ composition: "", features: "", care: "", service: "", size: "", price: "" })
+        setIsUploadingMain(false);
+      } else {
+        const newRef = [...referenceImages]
+        newRef[target] = mockAsset
+        setReferenceImages(newRef)
+        setIsUploadingRefs((prev: boolean[]) => { const n = [...prev]; n[target] = false; return n; });
+      }
+      toast.success("上传成功", { id: toastId });
+    } catch (err) {
+      toast.error("上传失败", { id: toastId });
+      if (target === "main") setIsUploadingMain(false);
+      else setIsUploadingRefs((prev: boolean[]) => { const n = [...prev]; n[target] = false; return n; });
     }
   }
 
@@ -188,7 +272,14 @@ export default function EliteCatalogPage() {
                       <Image src={selectedAsset.src} alt={selectedAsset.title} fill className="object-cover" />
                       <div className="absolute top-2 left-2 bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">主推产品</div>
 
-                      {selectedAsset.isLocal && (
+                      {isUploadingMain && (
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                          <Loader2 className="w-6 h-6 text-primary animate-spin mb-1" />
+                          <span className="text-[10px] font-bold text-primary animate-pulse">SYNCING...</span>
+                        </div>
+                      )}
+
+                      {selectedAsset.isLocal && !isUploadingMain && (
                         <div className="absolute top-2 right-2 flex flex-col gap-1 z-10 w-auto text-left">
                           <Button variant="secondary" size="sm" className="h-[22px] px-2 text-[9px] font-bold bg-white/95 text-primary shadow-sm whitespace-nowrap" onClick={(e) => { e.stopPropagation(); openPickerFor("main_attributes"); }}>
                             <Link2 className="w-3 h-3 mr-1" /> 关联属性提取
@@ -225,6 +316,13 @@ export default function EliteCatalogPage() {
                       <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden group cursor-pointer border border-slate-200" onClick={() => !ref.isLocal && openPickerFor(idx)}>
                         <Image src={ref.src} alt="Reference" fill className="object-cover" />
                         <div className="absolute top-2 left-2 bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">穿搭图 {idx + 1}</div>
+
+                        {isUploadingRefs[idx] && (
+                          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                          </div>
+                        )}
+
                         <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/50 to-transparent flex justify-end p-1 pointer-events-none">
                           <button onClick={(e) => { e.stopPropagation(); const newArr = [...referenceImages]; newArr[idx] = null; setReferenceImages(newArr); }} className="w-5 h-5 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-red-500 backdrop-blur-sm transition-colors pointer-events-auto">
                             <X className="w-3 h-3" />
@@ -279,7 +377,7 @@ export default function EliteCatalogPage() {
                         className="w-full bg-transparent text-xs text-slate-500 focus:outline-none resize-none overflow-hidden h-14 custom-scrollbar placeholder:text-slate-300"
                         placeholder="-"
                         value={attributes[field.id as keyof typeof attributes]}
-                        onChange={(e) => setAttributes(prev => ({ ...prev, [field.id]: e.target.value }))}
+                        onChange={(e) => setAttributes((prev: any) => ({ ...prev, [field.id]: e.target.value }))}
                       />
                     </div>
                   ))}
@@ -349,13 +447,13 @@ export default function EliteCatalogPage() {
                 <Button
                   size="lg"
                   className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 gap-2 h-12 rounded-xl transition-all hover:scale-[1.01]"
-                  disabled={!selectedAsset || generating}
+                  disabled={!selectedAsset || generating || isUploadingMain || isUploadingRefs.some(v => v)}
                   onClick={handleGenerate}
                 >
-                  {generating ? (
+                  {generating || isUploadingMain || isUploadingRefs.some(v => v) ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="font-bold text-sm">正在组配图文矩阵...</span>
+                      <span className="font-bold text-sm">{isUploadingMain || isUploadingRefs.some(v => v) ? "图片同步云端中..." : "正在组配图文矩阵..."}</span>
                     </>
                   ) : (
                     <>

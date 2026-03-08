@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { IMAGE_TOOL_MODE_PROMPTS, type ImageToolMode, ONE_CLICK_MODES } from "@/lib/constants/image-tool-prompts"
 import { mockDbAssets } from "@/lib/mock-data"
+import { uploadImage } from "@/lib/storage"
 
 const expandRatios = [
     { id: "1:1", label: "1:1", desc: "正方形 (Instagram/主图)", icon: Square },
@@ -58,6 +59,11 @@ export default function OneClickRetouchPage() {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<ImageToolMode>("white_bg")
     const [files, setFiles] = useState<File[]>([])
+    // Cloud URL persistence states
+    const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
+
     const [toolPrompt, setToolPrompt] = useState("")
     const [selectedRatio, setSelectedRatio] = useState("1:1")
     const [selectedResolution, setSelectedResolution] = useState("2k")
@@ -66,7 +72,7 @@ export default function OneClickRetouchPage() {
     const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false)
 
     const handleProcess = useCallback(() => {
-        if (files.length === 0) return
+        if (uploadedUrls.length === 0) return
         setProcessing(true)
         setTimeout(() => {
             setProcessing(false)
@@ -82,7 +88,27 @@ export default function OneClickRetouchPage() {
             }
             toast.success(messages[activeTab] || "处理完成")
         }, 2800)
-    }, [files, activeTab])
+    }, [uploadedUrls, activeTab])
+
+    // Hydration Effect
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('one_click_uploaded_urls');
+                if (saved) setUploadedUrls(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to load uploaded URLs", e);
+            }
+            setIsHydrated(true);
+        }
+    }, []);
+
+    // Persistence Effect
+    useEffect(() => {
+        if (isHydrated && typeof window !== 'undefined') {
+            localStorage.setItem('one_click_uploaded_urls', JSON.stringify(uploadedUrls));
+        }
+    }, [isHydrated, uploadedUrls]);
 
     useEffect(() => {
         if (IMAGE_TOOL_MODE_PROMPTS[activeTab]) {
@@ -92,14 +118,26 @@ export default function OneClickRetouchPage() {
 
     const selectAssetAndAdd = async (asset: any) => {
         try {
+            setIsAssetPickerOpen(false);
             const response = await fetch(asset.src);
             const blob = await response.blob();
             const file = new File([blob], asset.title || "asset.png", { type: blob.type });
+
             setFiles([file]);
-            setIsAssetPickerOpen(false);
-            toast.success(`已添加素材: ${asset.title}`);
+            setIsUploading(true);
+            const toastId = toast.loading(`正在从素材库转存 ${asset.title} 至云端...`);
+
+            try {
+                const realUrl = await uploadImage(file);
+                setUploadedUrls([realUrl]);
+                toast.success("素材同步云端成功", { id: toastId });
+            } catch (err) {
+                toast.error("云端同步失败", { id: toastId });
+            } finally {
+                setIsUploading(false);
+            }
         } catch (err) {
-            toast.error("素材加载失败");
+            toast.error("素材库加载失败");
         }
     };
 
@@ -134,13 +172,28 @@ export default function OneClickRetouchPage() {
                             </Button>
                         </div>
                         <UploadDropzone
-                            onFileSelect={(selected) => {
-                                setFiles(selected.slice(0, 1));
+                            onFileSelect={async (selected) => {
+                                const file = selected[0];
+                                if (!file) return;
+                                setFiles([file]);
                                 setProcessed(false);
+
+                                setIsUploading(true);
+                                const toastId = toast.loading("图片正在上传至云端...");
+                                try {
+                                    const realUrl = await uploadImage(file);
+                                    setUploadedUrls([realUrl]);
+                                    toast.success("云端上传成功", { id: toastId });
+                                } catch (err) {
+                                    toast.error("上传错误，请重试", { id: toastId });
+                                } finally {
+                                    setIsUploading(false);
+                                }
                             }}
                             currentFiles={files}
                             onClear={() => {
                                 setFiles([]);
+                                setUploadedUrls([]);
                                 setProcessed(false);
                             }}
                             label="选择或拖入需要处理的原图"
@@ -245,12 +298,12 @@ export default function OneClickRetouchPage() {
                         <Button
                             size="lg"
                             className="w-full bg-primary hover:bg-primary/90 text-white gap-3 h-13 rounded-2xl shadow-lg shadow-primary/20"
-                            disabled={files.length === 0 || processing}
+                            disabled={uploadedUrls.length === 0 || processing || isUploading}
                             onClick={handleProcess}
                         >
-                            {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                            {processing || isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
                             <span className="font-bold tracking-widest uppercase text-xs">
-                                {processing ? "处理中..." : "立即一键生成"}
+                                {isUploading ? "图片上云中..." : processing ? "处理中..." : "立即一键生成"}
                             </span>
                         </Button>
                     </div>
@@ -292,13 +345,27 @@ export default function OneClickRetouchPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center animate-in zoom-in-95 duration-300">
+                            <div className="flex flex-col items-center animate-in zoom-in-95 duration-300 relative">
                                 <div className="w-[300px] aspect-square bg-white rounded-3xl shadow-xl border border-slate-100 relative overflow-hidden">
-                                    <Image src={URL.createObjectURL(files[0])} alt="Preview" fill className="object-cover" />
+                                    <Image
+                                        src={uploadedUrls[0] || (files[0] ? URL.createObjectURL(files[0]) : "")}
+                                        alt="Preview"
+                                        fill
+                                        className="object-cover"
+                                        unoptimized={!!uploadedUrls[0]}
+                                    />
+                                    {isUploading && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center transition-all">
+                                            <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+                                            <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Uploading to Cloud</p>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="mt-6 px-4 py-2 bg-slate-900 text-white rounded-full text-[10px] font-bold shadow-lg flex items-center gap-2">
-                                    <Sparkles className="w-3 h-3" /> 点击右侧按钮开始处理
-                                </div>
+                                {!isUploading && (
+                                    <div className="mt-6 px-4 py-2 bg-slate-900 text-white rounded-full text-[10px] font-bold shadow-lg flex items-center gap-2">
+                                        <Sparkles className="w-3 h-3" /> 点击左侧按钮开始处理
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

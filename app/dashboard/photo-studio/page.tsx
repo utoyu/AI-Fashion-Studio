@@ -7,11 +7,14 @@ import { Switch } from "@/components/ui/switch"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import Image from "next/image"
+import { uploadImage } from "@/lib/storage"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 import {
     Shirt,
@@ -169,6 +172,8 @@ export default function PhotoStudioPage() {
     const allBlocks: OutfitBlock[] = outfitCategories.flatMap(c => c.blocks)
     // Top-level selections state for left blocks
     const [selections, setSelections] = useState<Record<string, any>>({})
+    const [isUploadingMap, setIsUploadingMap] = useState<Record<string, boolean>>({})
+    const [isHydrated, setIsHydrated] = useState(false)
 
     // Toggles states
     const [aiToggles, setAiToggles] = useState<Record<string, boolean>>({})
@@ -252,6 +257,28 @@ export default function PhotoStudioPage() {
         },
     ])
 
+    // Hydration Effect
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('studio_selections');
+                if (saved) setSelections(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to load studio selections", e);
+            }
+            setIsHydrated(true);
+        }
+    }, []);
+
+    // Persistence Effect
+    useEffect(() => {
+        if (isHydrated && typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('studio_selections', JSON.stringify(selections));
+            } catch (e) { }
+        }
+    }, [isHydrated, selections])
+
     useEffect(() => {
         try {
             const stored = localStorage.getItem("archived_studio_images")
@@ -298,14 +325,40 @@ export default function PhotoStudioPage() {
         setIsAssetPickerOpen(true)
     }
 
-    const selectAssetAndClose = (asset: any) => {
+    const selectAssetAndClose = async (asset: any) => {
         if (assetPickerTarget) {
-            setSelections(prev => ({
-                ...prev,
-                [assetPickerTarget]: asset
-            }))
+            const target = assetPickerTarget;
+            setIsAssetPickerOpen(false);
+
+            // Background Cloud Cloning
+            setIsUploadingMap(prev => ({ ...prev, [target]: true }));
+            const toastId = toast.loading(`正在从素材库同步 ${asset.title}...`);
+
+            try {
+                const response = await fetch(asset.src);
+                if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
+                const blob = await response.blob();
+                // Use asset.id as a safe base for the filename
+                const safeName = `${asset.id || 'asset'}.png`;
+                const file = new File([blob], safeName, { type: blob.type });
+
+                const realUrl = await uploadImage(file);
+                setSelections(prev => ({
+                    ...prev,
+                    [target]: { ...asset, src: realUrl }
+                }));
+                toast.success("素材同步云端成功", { id: toastId });
+            } catch (err) {
+                toast.error("云端同步失败", { id: toastId });
+                // Fallback to original src if cloud upload fails
+                setSelections(prev => ({
+                    ...prev,
+                    [target]: asset
+                }));
+            } finally {
+                setIsUploadingMap(prev => ({ ...prev, [target]: false }));
+            }
         }
-        setIsAssetPickerOpen(false)
         setAssetPickerTarget(null)
     }
 
@@ -481,7 +534,12 @@ export default function PhotoStudioPage() {
                                                         ) : (
                                                             <IconCmp className="w-6 h-6 text-[#788596]" strokeWidth={1.5} />
                                                         )}
-                                                        {!isSelected && (
+                                                        {isUploadingMap[block.id] && (
+                                                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-10 transition-all">
+                                                                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                                                            </div>
+                                                        )}
+                                                        {!isSelected && !isUploadingMap[block.id] && (
                                                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#ff6baf] rounded-full flex items-center justify-center border-2 border-white text-white z-10">
                                                                 <span className="text-[14px] font-bold leading-none mb-0.5">+</span>
                                                             </div>
@@ -490,7 +548,9 @@ export default function PhotoStudioPage() {
 
                                                     {/* Texts */}
                                                     <div className="flex flex-col items-center justify-center flex-1 overflow-hidden h-full pt-1 pr-4">
-                                                        {isSelected ? (
+                                                        {isUploadingMap[block.id] ? (
+                                                            <span className="text-[10px] text-primary font-bold animate-pulse tracking-tight uppercase">Syncing...</span>
+                                                        ) : isSelected ? (
                                                             <span className="text-[13px] text-slate-700 font-bold truncate w-full text-center leading-tight" title={selections[block.id].title}>
                                                                 {selections[block.id].title}
                                                             </span>
@@ -717,10 +777,12 @@ export default function PhotoStudioPage() {
                         <Button
                             className="w-full bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 text-[13px] font-bold h-10 tracking-widest transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                             onClick={handleSubmitCreation}
-                            disabled={isSubmitting || !imagePrompt}
+                            disabled={isSubmitting || !imagePrompt || Object.values(isUploadingMap).some(Boolean)}
                         >
                             {isSubmitting ? (
                                 <>正在生成... <Loader2 className="w-4 h-4 ml-2 animate-spin" /></>
+                            ) : Object.values(isUploadingMap).some(Boolean) ? (
+                                <>素材同步中... <Loader2 className="w-4 h-4 ml-2 animate-spin" /></>
                             ) : (
                                 <>提交创作 <Gem className="w-3.5 h-3.5 ml-1.5 fill-white/40" /> 10</>
                             )}
@@ -892,12 +954,16 @@ export default function PhotoStudioPage() {
                 {/* Model Details Super-Modal */}
                 <Dialog open={isModelDetailsOpen} onOpenChange={setIsModelDetailsOpen}>
                     <DialogContent className="max-w-3xl h-[600px] p-0 flex flex-col gap-0 border-none shadow-2xl bg-white rounded-xl overflow-hidden">
-                        <div className="h-[60px] flex items-center justify-between px-6 border-b shrink-0">
-                            <span className="font-bold text-base text-slate-800">模特细节</span>
+                        <DialogHeader className="h-[60px] flex-row items-center justify-between px-6 border-b shrink-0 space-y-0">
+                            <DialogTitle className="font-bold text-base text-slate-800">模特细节</DialogTitle>
                             <button onClick={() => setIsModelDetailsOpen(false)} className="text-slate-400 hover:text-slate-700">
                                 <X className="w-5 h-5" />
                             </button>
-                        </div>
+                        </DialogHeader>
+                        {/* Accessibility: DialogDescription is recommended */}
+                        <DialogDescription className="sr-only">
+                            调节模特的动作、景别与着装细节
+                        </DialogDescription>
 
                         <div className="flex h-[40px] px-8 bg-white border-b shrink-0 pt-3">
                             {[{ id: 'action', label: '动作要求' }, { id: 'framing', label: '模特景别' }, { id: 'outfit', label: '着装要求' }].map(tab => (

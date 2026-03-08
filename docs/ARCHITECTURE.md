@@ -18,10 +18,16 @@
     - `Background` (背景)：包含环境光影数据、场景分类、装修风格。
 - **交互规范**：采用自适应 90vh 全屏 Detail Dialog，根据资产类型动态渲染布局。
 
-## 3. 关键组件依赖
-- `UploadDropzone`: 统一的文件上传入口，支持 `File[]` 数组。
+### 2.3 云端存储层 (Cloud Storage Layer)
+- **底层驱动**：采用 **Supabase Storage** 作为对象存储 (OSS) 基座，替代本地临时预览。
+- **直传机制**：通过 `lib/storage.ts` 实现前端直传，返回持久化公网 URL，为下游 AI 引擎提供稳定输入。
+- **容错处理**：内置文件名脱敏与 MIME 后缀自动补全，兼容复杂的本地文件系统命名习惯。
+
+## 3. 关键组件与持久化规范
+- `UploadDropzone`: 统一的文件上传入口，集成 `uploadImage` 自动直传逻辑。
+- **Hydration Safe Persistence**: 采用 `isHydrated` 模式的 `localStorage` 持久化，确保全站参数在刷新后高度一致。
 - `CustomScrollbar`: 全局统一的极简滚动条风格。
 - `StandardizedHeader`: 像素级对齐的全局顶部导航。
 
 ---
-*最后更新：2026-03-05*
+*最后更新：2026-03-08*

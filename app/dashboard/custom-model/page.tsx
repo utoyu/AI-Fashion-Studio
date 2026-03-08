@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import Image from "next/image"
 import {
   Users,
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { UploadDropzone } from "@/components/dashboard/upload-dropzone"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { uploadImage } from "@/lib/storage"
 
 const skinTones = [
   { id: "fair", label: "冷白皮", color: "bg-[#FDDCB5]" },
@@ -59,15 +60,52 @@ const groomingStyles = [
 
 export default function CustomModelPage() {
   const [file, setFile] = useState<File | null>(null)
+  // Cloud URL & Loading states
+  const [uploadedUrl, setUploadedUrl] = useState<string>("")
+  const [isUploading, setIsUploading] = useState(false);
+
   const [skinTone, setSkinTone] = useState("natural")
   const [bodyType, setBodyType] = useState("athletic")
   const [ageRange, setAgeRange] = useState("elite")
   const [hairStyle, setHairStyle] = useState("formal")
   const [groomingStyle, setGroomingStyle] = useState("clean")
   const [supplementalPrompt, setSupplementalPrompt] = useState("")
+
   const [generating, setGenerating] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Hydration Effect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUrl = localStorage.getItem('custom_model_uploaded_url');
+        if (savedUrl) setUploadedUrl(savedUrl);
+
+        const savedSkin = localStorage.getItem('custom_model_skin_tone');
+        if (savedSkin) setSkinTone(savedSkin);
+
+        const savedBody = localStorage.getItem('custom_model_body_type');
+        if (savedBody) setBodyType(savedBody);
+
+        const savedAge = localStorage.getItem('custom_model_age_range');
+        if (savedAge) setAgeRange(savedAge);
+
+        const savedHair = localStorage.getItem('custom_model_hair_style');
+        if (savedHair) setHairStyle(savedHair);
+
+        const savedGrooming = localStorage.getItem('custom_model_grooming_style');
+        if (savedGrooming) setGroomingStyle(savedGrooming);
+
+        const savedPrompt = localStorage.getItem('custom_model_prompt');
+        if (savedPrompt) setSupplementalPrompt(savedPrompt);
+      } catch (e) {
+        console.error("Failed to load custom model settings", e);
+      }
+      setIsHydrated(true);
+    }
+  }, []);
 
   // Matrix result: 6 views as requested
   const [results, setResults] = useState<{
@@ -113,6 +151,19 @@ export default function CustomModelPage() {
       setSelectedIds(new Set()) // Clear selection after success
     }, 1200)
   }, [selectedIds])
+
+  // Persistence Effect
+  useEffect(() => {
+    if (isHydrated && typeof window !== 'undefined') {
+      localStorage.setItem('custom_model_uploaded_url', uploadedUrl);
+      localStorage.setItem('custom_model_skin_tone', skinTone);
+      localStorage.setItem('custom_model_body_type', bodyType);
+      localStorage.setItem('custom_model_age_range', ageRange);
+      localStorage.setItem('custom_model_hair_style', hairStyle);
+      localStorage.setItem('custom_model_grooming_style', groomingStyle);
+      localStorage.setItem('custom_model_prompt', supplementalPrompt);
+    }
+  }, [isHydrated, uploadedUrl, skinTone, bodyType, ageRange, hairStyle, groomingStyle, supplementalPrompt]);
 
   const handleGenerate = useCallback(() => {
     setGenerating(true)
@@ -161,10 +212,27 @@ export default function CustomModelPage() {
                   大使视觉雏形上传 (可选)
                 </h2>
                 <UploadDropzone
-                  onFileSelect={(files) => setFile(files[0] || null)}
+                  onFileSelect={async (files) => {
+                    const selected = files[0];
+                    if (!selected) return;
+                    setFile(selected);
+
+                    setIsUploading(true);
+                    const toastId = toast.loading("形象雏形正在同步至云端...");
+                    try {
+                      const realUrl = await uploadImage(selected);
+                      setUploadedUrl(realUrl);
+                      toast.success("形象同步成功", { id: toastId });
+                    } catch (err) {
+                      toast.error("同步失败，请重试", { id: toastId });
+                    } finally {
+                      setIsUploading(false);
+                    }
+                  }}
                   currentFiles={file ? [file] : []}
                   onClear={() => {
                     setFile(null)
+                    setUploadedUrl("")
                     setResults(null)
                   }}
                 />
@@ -286,13 +354,13 @@ export default function CustomModelPage() {
               <Button
                 size="lg"
                 className="w-full bg-primary hover:bg-primary/90 text-white gap-3 h-14 rounded-2xl shadow-xl shadow-primary/20 mt-4 overflow-hidden group"
-                disabled={generating}
+                disabled={generating || isUploading}
                 onClick={handleGenerate}
               >
-                {generating ? (
+                {generating || isUploading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="font-bold tracking-widest italic">建模中...</span>
+                    <span className="font-bold tracking-widest italic">{isUploading ? "同步中..." : "建模中..."}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">

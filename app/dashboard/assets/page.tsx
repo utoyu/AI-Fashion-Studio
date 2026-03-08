@@ -32,6 +32,8 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { mockDbAssets } from "@/lib/mock-data"
+import { uploadImage } from "@/lib/storage"
+import { toast } from "sonner"
 const tabs = [
     { id: "garment", label: "衣物素材", icon: Shirt },
     { id: "model", label: "模特库", icon: Users },
@@ -103,7 +105,29 @@ export default function AssetsPage() {
     }, [activeTab]);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [searchQuery, setSearchQuery] = useState("")
-    const [assets, setAssets] = useState(mockDbAssets)
+    const [assets, setAssets] = useState<any[]>(mockDbAssets)
+    const [isHydrated, setIsHydrated] = useState(false)
+
+    // Hydration Effect
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('custom_assets')
+                if (saved) setAssets(JSON.parse(saved))
+            } catch (e) {
+                console.error("Failed to load assets", e)
+            }
+            setIsHydrated(true)
+        }
+    }, [])
+
+    // Persist assets to localStorage
+    useEffect(() => {
+        if (isHydrated && typeof window !== 'undefined') {
+            localStorage.setItem('custom_assets', JSON.stringify(assets))
+        }
+    }, [isHydrated, assets])
+
     const [editingAsset, setEditingAsset] = useState<any>(null)
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
     const [zoom, setZoom] = useState(100)
@@ -207,41 +231,62 @@ export default function AssetsPage() {
         fileInputRef.current?.click()
     }
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || [])
         if (files.length > 0) {
-            const newAssets = files.map(file => {
-                const isGarment = activeTab === "garment"
-                const isBg = activeTab === "background"
-                const prefix = isGarment ? "GRM" : (isBg ? "BGD" : "MDL")
-                const newId = `M${Math.floor(100 + Math.random() * 900)}-${prefix}`
+            const toastId = toast.loading(`正在上传 ${files.length} 个素材至云端...`)
+            try {
+                const uploadResults = await Promise.all(
+                    files.map(async (file) => {
+                        const isGarment = activeTab === "garment"
+                        const isBg = activeTab === "background"
+                        const prefix = isGarment ? "GRM" : (isBg ? "BGD" : "MDL")
+                        const newId = `M${Math.floor(100 + Math.random() * 900)}-${prefix}`
 
-                return {
-                    id: newId,
-                    type: activeTab,
-                    src: URL.createObjectURL(file), // Generate local preview URL
-                    title: file.name,
-                    description: "双击编辑完善资产信息..."
-                } as any
-            })
+                        // Real upload to Supabase
+                        const publicUrl = await uploadImage(file)
 
-            setAssets(prev => [...newAssets, ...prev])
+                        return {
+                            id: newId,
+                            type: activeTab,
+                            src: publicUrl,
+                            title: file.name,
+                            description: "双击编辑完善资产信息...",
+                            createTime: new Date().toLocaleString(),
+                            creator: "Admin"
+                        } as any
+                    })
+                )
 
-            // Clear input so the same file could be selected again if needed
-            e.target.value = "" // Reset
+                setAssets(prev => [...uploadResults, ...prev])
+                toast.success("上传成功并存入云端", { id: toastId })
+            } catch (error) {
+                console.error("Upload error:", error)
+                toast.error("素材上云失败，请重试", { id: toastId })
+            } finally {
+                e.target.value = "" // Reset
+            }
         }
     }
 
-    const handleAngleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAngleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file && activeAngleField) {
-            const previewUrl = URL.createObjectURL(file)
-            setEditingAsset((prev: any) => ({
-                ...prev,
-                [activeAngleField]: previewUrl
-            }))
-            e.target.value = "" // Reset
-            setActiveAngleField(null)
+            const toastId = toast.loading("正在转存角度图至云端...")
+            try {
+                const publicUrl = await uploadImage(file)
+                setEditingAsset((prev: any) => ({
+                    ...prev,
+                    [activeAngleField]: publicUrl
+                }))
+                toast.success("上云成功", { id: toastId })
+            } catch (error) {
+                console.error("Angle upload error:", error)
+                toast.error("角度图上传失败", { id: toastId })
+            } finally {
+                e.target.value = "" // Reset
+                setActiveAngleField(null)
+            }
         }
     }
 
@@ -456,7 +501,8 @@ export default function AssetsPage() {
                             onClick={() => {
                                 if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current)
                                 clickTimeoutRef.current = setTimeout(() => {
-                                    setEditingAsset({ ...asset })
+                                    // Deep copy to prevent reference issues
+                                    setEditingAsset(JSON.parse(JSON.stringify(asset)))
                                 }, 250)
                             }}
                             onDoubleClick={(e) => {
@@ -514,7 +560,24 @@ export default function AssetsPage() {
                                     <div className="col-span-6">
                                         <div className="bg-white rounded-xl p-4 border border-slate-200/60 shadow-sm relative overflow-hidden group">
                                             <div className="aspect-square relative rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
-                                                <Image src={editingAsset.src} alt={editingAsset.title} fill className="object-contain" />
+                                                {editingAsset.src ? (
+                                                    <Image
+                                                        src={editingAsset.src}
+                                                        alt={editingAsset.title}
+                                                        fill
+                                                        className="object-contain"
+                                                        onError={(e) => {
+                                                            // Fallback if image fails to load
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.src = "/images/feature-studio.jpg";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-2 text-slate-300">
+                                                        <Shirt className="w-12 h-12" />
+                                                        <span className="text-xs">暂无图片</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
