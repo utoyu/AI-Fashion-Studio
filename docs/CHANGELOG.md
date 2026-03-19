@@ -1,5 +1,15 @@
 # 🕒 项目路线图与更新日志 (CHANGELOG.md)
 
+## [Unreleased] - 2026-03-10
+### 🚀 Features (新增功能)
+* **事件驱动架构 (Event-Driven Architecture) 上线:** 正式废弃前端直接请求生图 API 的同步阻塞模式。
+* **Supabase Realtime 接入:** 前端 `ManualRetouchPage` 成功集成 WebSocket 实时订阅，实现不刷新页面自动感知 AI 任务进度 (`pending` -> `processing` -> `completed`)。
+* **自动化任务分发 (Task Queue):** 在 Supabase 创建了核心流转表 `ai_tasks`。
+* **Python Daemon 守护进程测试通过:** 编写并跑通了本地 `worker.py`，实现全自动的“轮询发现新任务 -> 抢单修改状态 -> 模拟处理 -> 结果回传”链路。
+
+### 🛠️ Refactoring (重构)
+* 解除了 Supabase `ai_tasks` 表的 RLS (行级安全) 限制（原型测试阶段），打通前端监听的权限阻断问题。
+
 ## [2026-03-08] 全站云端同步与 SSR 韧性增强
 ### ✨ 新特性 (New Features)
 - **Supabase 云端直传 (OSS Integration)**：全站图片上传逻辑从本地 `Blob` 彻底迁移至 Supabase Storage。实现了“素材库、电商组图、一键精修、模特定制、摄影室”五大核心板块的云端持久化存储，解决了 AI 生图引擎对本地临时 URL 的排斥问题。

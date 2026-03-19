@@ -14,25 +14,31 @@
 
 ## 二、 核心技术踩坑与最佳实践 (Engineering Lessons)
 
-### 1. 交互冲突处理 (Interaction Conflict)
-* **场景**：素材格子需要同时兼容“单击预览”和“双击编辑”。
-* **解法**：严禁混用！在 `onClick` 中挂载 250ms 的 `setTimeout` 防抖。若触发双击，则立刻 `clearTimeout` 阻断单击动作，并在入口处依据 `item.type` 进行严格的事件分发。
+### 1. 组件与状态架构设计 (Component & State Architecture)
+* **“傻瓜组件”铁律**：底层 UI 组件（如 `<UploadDropzone>`）必须是“绝对的傻瓜”。只负责渲染样式交互，通过 props (如 `onFileSelect`) 原封不动地传递原始数据。严禁在其中调用 API 或执行业务逻辑。
+* **外科手术式重构**：逻辑注入严禁破坏 UI。接入云端逻辑时，必须保持所有 DOM 结构、CSS 类名、动画效果 (`animate-in`, `hover:`, `group-hover`) 绝对不变，仅替换数据绑定。
+* **交互冲突处理**：涉及单击/双击冲突时（如素材格子），在 `onClick` 中挂载 250ms 防抖。若触发双击，立刻 `clearTimeout` 阻断。
+* **原型期状态持久化**：在正式接入数据库前，核心状态（如 assets 列表）需通过 `localStorage` “保活”。初始化 State 时优先读取本地缓存，并使用 `useEffect` 实时同步，防止刷新丢失。
 
-### 2. Next.js 水合与布局防御 (Hydration & Layout)
-* **水合防护**：涉及本地缓存（主题切换、localStorage）的组件，强制采用 Mounted 延迟挂载模式（`if(!mounted) return null`）。
-* **自适应栅格**：在 90vh 的大屏弹出层中，采用“固定 Header/Footer + `flex-1` Body”防溢出，内容区强制使用 `grid-cols-12` 维持物理像素级的对齐。
+### 2. Next.js 与前端避坑指南 (Next.js Pitfalls)
+* **水合防护**：涉及本地缓存或 `localStorage` 的组件，强制采用 Mounted 延迟挂载模式 (`if(!mounted) return null`)。
+* **跨域图片白屏防御**：外网链接传入 `<Image>` 需在 `next.config.mjs` 注册域名。临时方案可使用原生 `<img />` 绕过审查。
+* **自适应栅格**：弹出层采用“固定 Header/Footer + `flex-1` Body”，内容区强制使用 `grid-cols-12` 维持像素级对齐。
 
-### 3. Windows / Agent 自动化防坑指南
-* **原子性操作**：废弃 `mkdir -p` 连写 `cp`，强制使用 PowerShell 原生命令 `New-Item -ItemType Directory -Force`，彻底规避文件系统句柄延迟导致的找不到目录报错。
+### 3. Windows / Agent 自动化防坑
+* **原子性操作**：废弃 `mkdir -p`，强制使用 PowerShell `New-Item -ItemType Directory -Force`，规避句柄延迟。
 * **路径免疫**：所有 CLI 文件搬运路径必须使用**双引号包裹绝对路径**。
 
-## 三、 进军后端的战前部署 (Backend Readiness & Blueprint)
+## 三、 云端与接口通信机制 (Cloud & API Mechanism)
 
-### 1. 状态树与数据流改造 (State & Fetching)
-* **全局状态**：全面引入 **Zustand**，建立 `UserStore` (管配额/鉴权) 和 `AssetStore` (管云端图库)，消灭深层组件的 Prop Drilling。
-* **请求接管**：引入 **SWR / React Query** 接管所有 GET 请求（如历史记录、素材列表），利用其自带的缓存与聚焦重验（Revalidate）特性，大幅消灭冗余的 `useEffect`。
-* **强类型防线**：引入 **Zod + React Hook Form**。在向后端发送昂贵的 AI 生成载荷前，前端必须完成极度严格的数据结构校验。
+### 1. 核心变量防死锁 (Strict Env Validation)
+* **显式防御**：初始化 Supabase 或 AI 配置时，严禁使用隐式断言 `!`。必须编写显式检查，让错误“大声报错” (Fail Loudly)：
+  ```typescript
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error("❌ 致命错误：找不到 Supabase URL！请检查 .env.local")
+  }
+  ```
 
-### 2. 核心生图链路 (Core Generation Pipeline)
-* **对象存储直传 (OSS)**：严禁向自建后端发送 Base64 高清大图（极易引发 413 Payload Too Large）。必须采用：`前端请求预签名 URL -> 客户端直传 OSS -> 后端获取云端 URL` 的现代化链路。
-* **异步任务轮询 (Task Polling)**：基于 `fal-ai/idm-vton` 的生图动辄耗时 10s-1m。当前静态的 `setTimeout` Loading 必须重构为异步轮询：`提交生图请求 -> 后端返回 TaskID -> 前端每隔 2s 轮询状态接口 -> 渲染真实进度条`。
+### 2. 异步任务的用户反馈 (Mandatory Loading States)
+* **凡请求必有 Loading**：触发 async 函数首行必须开启反馈（如 `toast.loading(...)`），并在 `finally` block 中解除锁定，确保即使报错也能恢复交互，防止重复点击。
+

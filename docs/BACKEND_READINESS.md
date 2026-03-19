@@ -42,3 +42,21 @@
 
 ### 🚀 路径 B：突破核心业务壁垒 —— 连通真实 AI 生图链路 (Server Actions)
 ...
+
+## Phase 1: 物理管线铺设 (Storage & Asset Management) - [✅ 已完成]
+- [x] Supabase Storage 接入与前端上传组件重构。
+
+## Phase 2: 搭建“派单-接单”任务中枢 (Task Queue System) - [✅ 已完成]
+- [x] 数据库建表 (`ai_tasks`) 建立状态机与索引。
+- [x] 前端派单与 Realtime WebSocket 监听逻辑开发。
+- [x] 本地 Python Worker 基础接单与流转逻辑测试通关。
+
+## Phase 2.5: GPU 算力实装与 ComfyUI 对接 (The Real AI Engine) - [🚀 当前阶段]
+- [ ] **算力基建:** 采购部署 RTX 4090 服务器或租用 AutoDL 等云端算力实例。
+- [ ] **引擎部署:** 在服务器上安装配置 ComfyUI，导入 IDM-VTON / Flux 等业务核心模型。
+- [x] **Python Worker 升级:** 重写 `worker.py`，将伪代码替换为对本地 ComfyUI 127.0.0.1:8188 接口的真实 HTTP/WebSocket 请求 (已编写 `comfyui_worker.py` 草稿)。
+- [x] **结果回传链路:** Worker 生成图片后，调用 Supabase SDK 将物理硬盘中的图像 `upload` 至云端 Bucket，获取 URL 后更新至 `ai_tasks`。
+- [x] **前端容错:** 增加前端任务监听的超时熔断机制 (Timeout fallback)。
+
+## Phase 3: 记忆注入与数据打通 (Database Persistence) - [⏳ 待启动]
+- [ ] 构建 User 表与完整的 Assets (资产) 关系库，彻底废弃 localStorage。

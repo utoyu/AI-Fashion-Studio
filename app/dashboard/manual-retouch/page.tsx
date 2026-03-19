@@ -44,6 +44,7 @@ import { toast } from "sonner"
 import { IMAGE_TOOL_MODE_PROMPTS, type ImageToolMode, MANUAL_MODES } from "@/lib/constants/image-tool-prompts"
 import { mockDbAssets } from "@/lib/mock-data"
 import { uploadImage } from "@/lib/storage"
+import { supabase } from "@/lib/supabase"
 
 const spliceTemplates = [
     { id: "split-2", label: "左右对半", desc: "经典对比排版", slots: 2 },
@@ -71,27 +72,79 @@ export default function ManualRetouchPage() {
     const [processed, setProcessed] = useState(false)
     const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false)
     const [pickingFor, setPickingFor] = useState<"source" | "reference">("source")
+    const [resultImageUrl, setResultImageUrl] = useState<string | null>(null)
+    const [taskStatusMsg, setTaskStatusMsg] = useState<string>("")
 
-    const handleProcess = useCallback(() => {
+    const handleProcess = useCallback(async () => {
         if (sourceUrls.length === 0) return
         if (activeTab !== "splice" && referenceUrls.length === 0) {
             toast.error("请提供参考依据图片");
             return;
         }
+
+        setResultImageUrl(null)
+        setTaskStatusMsg("")
         setProcessing(true)
-        setTimeout(() => {
-            setProcessing(false)
-            setProcessed(true)
-            const messages = {
-                splice: "多图拼接排版完成",
-                swap_outfit: "模特服装已成功更换",
-                swap_face: "模特面部已成功替换",
-                change_pose: "模特交互姿态已成功重塑",
-                expand: "", white_bg: "", flat3d: "", pattern: "", usp_display: "", usp_analysis: ""
+        setProcessed(false)
+
+        try {
+            const { data, error } = await supabase
+                .from('ai_tasks')
+                .insert({
+                    task_type: activeTab,
+                    source_image_url: sourceUrls[0],
+                    reference_image_url: referenceUrls[0] || null,
+                    prompt: toolPrompt,
+                    status: 'pending'
+                })
+                .select()
+
+            if (error || !data || data.length === 0) {
+                throw new Error(error?.message || "任务创建失败")
             }
-            toast.success(messages[activeTab] || "处理完成")
-        }, 2800)
-    }, [sourceUrls, referenceUrls, activeTab])
+
+            const taskId = data[0].id
+
+            let timeoutId: ReturnType<typeof setTimeout>;
+
+            const channel = supabase.channel(`task-listener-${taskId}`)
+                .on(
+                    'postgres_changes',
+                    { event: 'UPDATE', schema: 'public', table: 'ai_tasks', filter: `id=eq.${taskId}` },
+                    (payload) => {
+                        const newStatus = payload.new.status;
+                        if (newStatus === 'processing') {
+                            setTaskStatusMsg("主厨已接单，GPU 推理中...");
+                        } else if (newStatus === 'completed') {
+                            clearTimeout(timeoutId);
+                            setResultImageUrl(payload.new.result_image_url);
+                            setProcessing(false);
+                            setProcessed(true);
+                            toast.success("处理完成");
+                            supabase.removeChannel(channel);
+                        } else if (newStatus === 'failed') {
+                            clearTimeout(timeoutId);
+                            setProcessing(false);
+                            toast.error(payload.new.error_message || "任务生成失败");
+                            supabase.removeChannel(channel);
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        timeoutId = setTimeout(() => {
+                            supabase.removeChannel(channel);
+                            setProcessing(false);
+                            toast.error("服务器繁忙，请稍后再试");
+                        }, 3 * 60 * 1000);
+                    }
+                })
+
+        } catch (err: any) {
+            toast.error(err?.message || "提交任务异常")
+            setProcessing(false)
+        }
+    }, [sourceUrls, referenceUrls, activeTab, toolPrompt])
 
     useEffect(() => {
         if (IMAGE_TOOL_MODE_PROMPTS[activeTab]) {
@@ -331,8 +384,8 @@ export default function ManualRetouchPage() {
                     </div>
                 </aside>
 
-                <main className="flex-1 flex flex-col p-8 bg-slate-50/50 relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-4">
+                <main className="flex-1 flex flex-col p-8 bg-slate-50/50 relative overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-between mb-4 shrink-0">
                         <div className="flex items-center gap-3">
                             <h2 className="text-sm font-bold text-slate-800">创作中心预览</h2>
                             <div className="px-2 py-0.5 bg-white border border-slate-100 rounded text-[9px] font-bold text-slate-400">Manual_Override_Active</div>
@@ -360,12 +413,12 @@ export default function ManualRetouchPage() {
                                     <div className="absolute inset-0 border-4 border-primary/10 rounded-full" />
                                     <div className="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin" />
                                 </div>
-                                <p className="font-bold text-primary animate-pulse">正在精细化像素对齐...</p>
+                                <p className="font-bold text-primary animate-pulse">{taskStatusMsg || "正在提交任务至云端..."}</p>
                             </div>
                         ) : processed ? (
                             <div className="relative w-full h-full flex items-center justify-center">
                                 <div className="relative h-full aspect-[3/4] shadow-2xl rounded-2xl overflow-hidden border-4 border-white">
-                                    <Image src="/images/feature-studio.jpg" alt="Manual Processed Result" fill className="object-cover" />
+                                    <img src={resultImageUrl || undefined} className="w-full h-full object-cover" />
                                     <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-xl border border-slate-100 shadow-xl">
                                         <p className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">Precision_Refactor</p>
                                         <p className="text-[8px] text-slate-400 mt-0.5">Confidence: 99.2%</p>
