@@ -60,7 +60,7 @@
 
 [ ] 数据隔离 (RLS 终极防护): 重新开启所有表的 Row Level Security。编写严密的策略：“用户只能看到、修改自己上传的素材和派发的任务”。
 
-[ ] Python Worker 权限加固: 确保后端 Python 脚本使用 Service Role Key 拥有全局最高权限，而前端只持有受限的 Anon Key。
+[x] 权限隔离加固: 在关键模块（如 `supabaseAdmin.ts`）引入 `server-only` 护航，确保后端脚本与 API 路由能安全使用 Service Role Key，同时前端被严格限制为只持有受限的 Anon Key。
 
 [ ] 生产环境部署: 将 Next.js 部署至 Vercel 主站，配置正式的生产环境变量。
 

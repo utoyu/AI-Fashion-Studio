@@ -139,7 +139,11 @@ Return the response as a pure JSON object (do not wrap in markdown \`\`\`json) w
                     const kimiData = await kimiResponse.json() as any;
                     let kimiRawText = kimiData.choices[0].message.content.trim();
                     kimiRawText = kimiRawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                    parsedResult = JSON.parse(kimiRawText);
+                    try {
+                        parsedResult = JSON.parse(kimiRawText);
+                    } catch {
+                        throw new Error(`Kimi returned invalid JSON: ${kimiRawText.substring(0, 200)}`);
+                    }
                     break;
 
                 case "mock":

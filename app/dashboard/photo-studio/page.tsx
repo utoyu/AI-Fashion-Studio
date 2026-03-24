@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -108,20 +108,26 @@ const SuitIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 )
 
+import { useTaskStore, type Task } from "@/store/useTaskStore"
+import { useTaskPolling } from "@/hooks/useTaskPolling"
+
+type BlockIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>
+
 interface OutfitBlock {
     id: string;
     label: string;
     type: string;
-    icon: any;
+    icon: BlockIcon;
     isRequired?: boolean;
     isOptional?: boolean;
     hasAi?: boolean;
     hasDetails?: boolean;
+    category?: string[]; // Garment category filter whitelist
 }
 
 interface OutfitCategory {
     title: string;
-    icon: any;
+    icon: BlockIcon;
     blocks: OutfitBlock[];
 }
 
@@ -139,9 +145,9 @@ const outfitCategories: OutfitCategory[] = [
         title: "主体着装 (Apparel)",
         icon: Shirt,
         blocks: [
-            { id: "top", label: "选择上装", type: "garment", isOptional: true, hasAi: true, icon: Shirt },
-            { id: "inner", label: "选择内搭", type: "garment", isOptional: true, hasAi: true, icon: InnerwearIcon },
-            { id: "bottom", label: "选择下装", type: "garment", isOptional: true, hasAi: true, icon: PantsIcon },
+            { id: "top", label: "选择上装", type: "garment", isOptional: true, hasAi: true, icon: Shirt, category: ['上装', '西装/套装', '户外装备'] },
+            { id: "inner", label: "选择内搭", type: "garment", isOptional: true, hasAi: true, icon: InnerwearIcon, category: ['内搭'] },
+            { id: "bottom", label: "选择下装", type: "garment", isOptional: true, hasAi: true, icon: PantsIcon, category: ['下装'] },
         ]
     },
     {
@@ -166,7 +172,33 @@ const promptTags = [
     { label: "面料质感", value: "macro fabric texture" },
 ]
 
+// HistoryItem defined at module level (not inside the component) to avoid re-creation on every render
+interface HistoryItem {
+    id: string | number;
+    creator: string;
+    date: string;
+    ratio: string;
+    mainImg?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    progress?: number;
+    sources: string[];
+    prompt: string;
+    sceneId?: string;
+    modelId?: string;
+    topId?: string;
+    innerId?: string;
+    bottomId?: string;
+    isArchived?: boolean;
+}
+
 export default function PhotoStudioPage() {
+    // Centralized background polling
+    useTaskPolling()
+
+    // Zustand Task Store
+    const addTask = useTaskStore((state) => state.addTask)
+    const tasks = useTaskStore((state) => state.tasks)
+
     const router = useRouter()
     // Flat list of blocks for lookup
     const allBlocks: OutfitBlock[] = outfitCategories.flatMap(c => c.blocks)
@@ -209,22 +241,6 @@ export default function PhotoStudioPage() {
 
     // Lightbox State
     const [lightboxData, setLightboxData] = useState<{ itemIndex: number, imageIndex: number } | null>(null)
-
-    interface HistoryItem {
-        id: string | number;
-        creator: string;
-        date: string;
-        ratio: string;
-        mainImg: string;
-        sources: string[];
-        prompt: string;
-        sceneId?: string;
-        modelId?: string;
-        topId?: string;
-        innerId?: string;
-        bottomId?: string;
-        isArchived?: boolean;
-    }
 
     // History items state
     const [historyItems, setHistoryItems] = useState<HistoryItem[]>([
@@ -301,31 +317,27 @@ export default function PhotoStudioPage() {
             const isAlreadyArchived = archives.some(a => a.id === item.id)
             if (isAlreadyArchived) {
                 archives = archives.filter(a => a.id !== item.id)
-                alert("已取消收藏并从归档移除")
+                toast.success("已取消收藏并从归档移除")
             } else {
-                archives.push({
-                    ...item,
-                    isArchived: true
-                })
-                alert("收藏成功！该图片已归档至对应素材关联库。")
+                archives.push({ ...item, isArchived: true })
+                toast.success("收藏成功！该图片已归档至存档中心。")
             }
             localStorage.setItem("archived_studio_images", JSON.stringify(archives))
-
             setHistoryItems(prev => prev.map(hi => hi.id === item.id ? { ...hi, isArchived: !isAlreadyArchived } : hi))
         } catch (e) {
             console.error(e)
-            alert("归档操作失败")
+            toast.error("归档操作失败")
         }
     }
 
     // Methods
-    const handleBlockClick = (blockId: string, blockType: string) => {
+    const handleBlockClick = useCallback((blockId: string, blockType: string) => {
         setAssetPickerTarget(blockId)
         setAssetPickerType(blockType)
         setIsAssetPickerOpen(true)
-    }
+    }, [])
 
-    const selectAssetAndClose = async (asset: any) => {
+    const handleAssetPick = async (asset: any) => {
         if (assetPickerTarget) {
             const target = assetPickerTarget;
             setIsAssetPickerOpen(false);
@@ -364,7 +376,7 @@ export default function PhotoStudioPage() {
 
     const handleGeneratePrompt = async () => {
         if (Object.keys(selections).length === 0) {
-            alert("请先选择一些元素进行创作！")
+            toast.error("请先选择一些元素进行创作！")
             return
         }
 
@@ -438,53 +450,113 @@ export default function PhotoStudioPage() {
             setImagePrompt(generatedStr)
         } catch (err: any) {
             console.error(err)
-            alert("生成 Prompt 失败: " + err.message)
+            toast.error("生成 Prompt 失败: " + err.message)
         } finally {
             setIsLoadingPrompt(false)
         }
     }
 
     const handleSubmitCreation = async () => {
+        console.log("🖱️ [Studio] Submit Clicked. Current Prompt Length:", imagePrompt?.length);
         if (!imagePrompt) {
-            alert("请先生成或输入提示词！")
+            console.warn("⚠️ [Studio] No prompt found. Aborting.");
+            toast.error("请先生成或输入提示词！")
             return
         }
 
         setIsSubmitting(true)
+        console.log("⏳ [Studio] Setting isSubmitting = true");
 
         try {
-            // Simulation of image generation
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            // 0. Resolve the source image URL
+            let garmentUrl = selections.model?.src || selections.top?.src || selections.inner?.src || "/images/assets/model-asian.png";
+            console.log("🖼️ [Studio] Initial garmentUrl resolved:", garmentUrl);
 
-            const timestamp = new Date().toISOString().replace(/[^\d]/g, '').slice(0, 14)
-            const newId = `IMG-${timestamp}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
-            const now = new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().split(' ')[0]
+            // 🚀 Force Upload: If it's a blob, upload it to Supabase first
+            if (garmentUrl.startsWith('blob:')) {
+                console.log("⚡ [Studio] Local blob detected. Calling uploadImage...");
+                toast.loading("正在上传图片至云端...", { id: "uploading" });
+                try {
+                    const response = await fetch(garmentUrl);
+                    const blob = await response.blob();
+                    const file = new File([blob], "studio-input.png", { type: blob.type });
+                    
+                    const permanentUrl = await uploadImage(file);
+                    garmentUrl = permanentUrl;
+                    console.log("✅ [Studio] Upload successful. New URL:", garmentUrl);
+                    toast.success("图片上传成功", { id: "uploading" });
+                } catch (uploadErr) {
+                    console.error("❌ [Studio] Upload process failed:", uploadErr);
+                    toast.error("图片上传云端失败，请检查网络", { id: "uploading" });
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
 
-            // Get sources from selections
-            const sources = Object.values(selections).map((s: any) => s.src).filter(Boolean) as string[]
+            console.log("📡 [Studio] Fetching /api/generate/mock...");
+            const response = await fetch("/api/generate/mock", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: "studio",
+                    prompt: imagePrompt,
+                    selections,
+                    ratio,
+                    count,
+                    garmentUrl
+                })
+            });
+            
+            console.log("📦 [Studio] Response received. Status:", response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("❌ [Studio] API Error Response:", errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
 
-            const newItem: HistoryItem = {
-                id: newId,
+            const data = await response.json();
+            console.log("✅ [Studio] Data parsed:", data);
+
+            if (!data.success) {
+                throw new Error(data.error || "后端入库失败");
+            }
+
+            // 2. Add to store for polling
+            const newTask: Task = {
+                id: data.requestId,
+                garmentSrc: garmentUrl,
+                status: 'PROCESSING',
+                progress: 0,
+                createdAt: Date.now()
+            };
+            addTask(newTask);
+
+            // 3. Add to local history list as a placeholder
+            const now = new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().split(' ')[0];
+            const sources = Object.values(selections).map((s: any) => s.src).filter(Boolean) as string[];
+
+            const historyPlaceholder: HistoryItem = {
+                id: data.requestId,
                 creator: "uto (ID: 20127)",
                 date: now,
                 ratio: ratio,
-                mainImg: (selections.model?.src || selections.top?.src || selections.inner?.src || "/images/assets/model-asian.png") as string,
+                status: 'PROCESSING',
+                progress: 0,
                 sources: sources.slice(0, 4),
                 prompt: imagePrompt,
                 sceneId: selections.scene?.id,
-                modelId: selections.model?.id,
                 topId: selections.top?.id,
                 innerId: selections.inner?.id,
                 bottomId: selections.bottom?.id,
-            }
+            };
 
-            setHistoryItems(prev => [newItem, ...prev])
-            setImagePrompt("")
-            // Optional: reset prompt after submission
-            // setImagePrompt("")
-            alert("创作提交成功！作品已加入历史记录。")
+            setHistoryItems(prev => [historyPlaceholder, ...prev]);
+            toast.success("创作任务已提交，后台生成中...");
+            setImagePrompt("");
         } catch (err: any) {
-            alert("提交失败: " + err.message)
+            console.error("❌ [Studio] Submission Error:", err);
+            toast.error("提交失败: " + err.message)
         } finally {
             setIsSubmitting(false)
         }
@@ -809,8 +881,18 @@ export default function PhotoStudioPage() {
                     {/* History List */}
                     <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
                         <div className="max-w-4xl mx-auto flex flex-col gap-10">
-                            {historyItems.map((item, idx) => (
-                                <div key={idx} className="flex gap-6 border-b border-slate-100 pb-8 relative group">
+                            {historyItems.map((localItem, idx) => {
+                                // 🔄 Sync with live task store for progress/status
+                                const liveTask = tasks[localItem.id.toString()];
+                                const item = liveTask ? {
+                                    ...localItem,
+                                    status: liveTask.status,
+                                    progress: liveTask.progress,
+                                    mainImg: liveTask.status === 'COMPLETED' ? liveTask.resultUrl : localItem.mainImg
+                                } : localItem;
+
+                                return (
+                                    <div key={idx} className="flex gap-6 border-b border-slate-100 pb-8 relative group">
                                     {/* Fixed Square Frame, Image aspect correctly letterboxed within */}
                                     <button
                                         onClick={() => setLightboxData({ itemIndex: idx, imageIndex: 0 })}
@@ -830,12 +912,31 @@ export default function PhotoStudioPage() {
                                                                 '1/1'
                                             }}
                                         >
-                                            <Image
-                                                src={item.mainImg}
-                                                alt="Result"
-                                                fill
-                                                className="object-fill"
-                                            />
+                                            {item.status === 'COMPLETED' || !item.status ? (
+                                                <Image
+                                                    src={item.mainImg || "/images/assets/model-asian.png"}
+                                                    alt="Result"
+                                                    fill
+                                                    unoptimized={true}
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                    className="object-cover transition-transform duration-700 group-hover/img:scale-110"
+                                                />
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center h-full w-full gap-3 bg-slate-50">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="text-[10px] font-bold text-primary animate-pulse">
+                                                            {item.progress || 0}% 生成中
+                                                        </span>
+                                                        <div className="w-24 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-primary transition-all duration-500" 
+                                                                style={{ width: `${item.progress || 0}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </button>
 
@@ -856,7 +957,7 @@ export default function PhotoStudioPage() {
                                                     onClick={() => setLightboxData({ itemIndex: idx, imageIndex: i + 1 })}
                                                     className="w-12 h-16 rounded overflow-hidden relative border border-slate-200 shadow-sm bg-slate-50 cursor-zoom-in hover:border-primary/50 transition-colors"
                                                 >
-                                                    <Image src={src} alt="Source" fill className="object-cover" />
+                                                    <Image src={src} alt="Source" fill sizes="48px" className="object-cover" />
                                                 </button>
                                             ))}
                                         </div>
@@ -892,9 +993,9 @@ export default function PhotoStudioPage() {
                                             </div>
                                         </div>
                                     </div>
-
                                 </div>
-                            ))}
+                            )
+                        })}
 
                             <div className="text-center text-xs text-slate-400 py-10">没有更多数据了</div>
                         </div>
@@ -918,27 +1019,19 @@ export default function PhotoStudioPage() {
 
                                     // Product Category filtering for Garments
                                     if (a.type === 'garment' && assetPickerTarget) {
-                                        const targetToCategory: Record<string, string[]> = {
-                                            'top': ['上装', '西装/套装', '户外装备'],
-                                            'bottom': ['下装'],
-                                            'inner': ['内搭'],
-                                            'acc1': ['领带/配饰'],
-                                            'acc2': ['领带/配饰']
-                                        };
-                                        const requiredCategories = targetToCategory[assetPickerTarget];
-                                        if (requiredCategories) {
-                                            return (a as any).productCategory?.some((cat: string) => requiredCategories.includes(cat));
-                                        }
+                                        const block = allBlocks.find(b => b.id === assetPickerTarget);
+                                        // block.category is string[], a.category is string — use includes()
+                                        if (block && block.category && !block.category.includes(a.category)) return false;
                                     }
                                     return true;
                                 })
                                 .map((asset: any) => (
                                     <div
                                         key={asset.id}
-                                        onClick={() => selectAssetAndClose(asset)}
-                                        className="group relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary shadow-sm"
+                                        className="group relative h-40 rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-all bg-white"
+                                        onClick={() => handleAssetPick(asset)}
                                     >
-                                        <Image src={asset.src} alt={asset.title} fill className="object-cover" />
+                                        <Image src={asset.src || ""} alt={asset.title} fill unoptimized={true} sizes="(max-width: 768px) 100vw, 250px" className="object-cover" />
                                         <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <p className="text-white text-[10px] truncate font-medium">{asset.title}</p>
                                         </div>
@@ -1038,12 +1131,11 @@ export default function PhotoStudioPage() {
                 </Dialog>
 
             </div>
-
             {/* Global Lightbox for History Images Group */}
             {lightboxData !== null && historyItems[lightboxData.itemIndex] && (
                 <ImageLightbox
                     images={[
-                        { id: 'main', src: historyItems[lightboxData.itemIndex].mainImg, title: `任务ID: ${historyItems[lightboxData.itemIndex].id} - 创作结果` },
+                        { id: 'main', src: historyItems[lightboxData.itemIndex].mainImg || "/images/assets/model-asian.png", title: `任务ID: ${historyItems[lightboxData.itemIndex].id} - 创作结果` },
                         ...historyItems[lightboxData.itemIndex].sources.map((src, i) => ({ id: `src-${i}`, src, title: `使用素材 ${i + 1}` }))
                     ]}
                     initialIndex={lightboxData.imageIndex}
@@ -1051,5 +1143,6 @@ export default function PhotoStudioPage() {
                 />
             )}
         </div>
+
     )
 }

@@ -5,6 +5,12 @@ import fs from "fs";
 import path from "path";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
 
+/** Typed response shape from fal-ai/idm-vton */
+interface FalResponse {
+  images?: { url: string; content_type?: string }[];
+  [key: string]: unknown;
+}
+
 // Configure global HTTP proxy for Node.js fetch (used by GoogleGenAI)
 if (process.env.LOCAL_PROXY) {
     const proxyAgent = new ProxyAgent(process.env.LOCAL_PROXY);
@@ -32,15 +38,22 @@ export async function POST(request: Request) {
         // 2. Call Fal.ai for Virtual Try-On
         console.log("[Generate API] Calling Fal.ai idm-vton...");
 
-        const toBase64DataUrl = async (url: string, defaultPath?: string) => {
+        const toBase64DataUrl = async (url: string, defaultPath?: string): Promise<string | null> => {
             let targetUrl = url || defaultPath;
             if (!targetUrl) return null;
             if (targetUrl.startsWith("data:image")) return targetUrl;
 
             try {
                 let base64: string;
+                let mimeType = 'image/jpeg'; // fallback
+
                 if (targetUrl.startsWith("http")) {
                     const response = await fetch(targetUrl);
+                    // Detect actual MIME type from response headers
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.startsWith('image/')) {
+                        mimeType = contentType.split(';')[0].trim();
+                    }
                     const arrayBuffer = await response.arrayBuffer();
                     base64 = Buffer.from(arrayBuffer).toString('base64');
                 } else {
@@ -50,8 +63,12 @@ export async function POST(request: Request) {
                         return null;
                     }
                     base64 = fs.readFileSync(filePath).toString('base64');
+                    // Detect MIME from file extension for local files
+                    const ext = path.extname(filePath).toLowerCase();
+                    const extMap: Record<string, string> = { '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' };
+                    mimeType = extMap[ext] ?? 'image/jpeg';
                 }
-                return `data:image/jpeg;base64,${base64}`;
+                return `data:${mimeType};base64,${base64}`;
             } catch (err) {
                 console.error("toBase64DataUrl error:", err);
                 return null;
@@ -65,7 +82,7 @@ export async function POST(request: Request) {
             throw new Error("Failed to load required images for generation.");
         }
 
-        let falResponse;
+        let falResponse: FalResponse;
         try {
             falResponse = await fal.subscribe("fal-ai/idm-vton", {
                 input: {
@@ -85,7 +102,7 @@ export async function POST(request: Request) {
             throw new Error(`Fal.ai API Error: ${e.message}`);
         }
 
-        const generatedImageUrl = (falResponse as any).images?.[0]?.url;
+        const generatedImageUrl = falResponse.images?.[0]?.url;
         if (!generatedImageUrl) {
             throw new Error("Fal.ai failed to generate an image");
         }

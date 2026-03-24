@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -26,12 +27,14 @@ import {
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
+type NavIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>
+
 interface NavItem {
-  icon: any
+  icon: NavIcon
   label: string
   href?: string
   badge?: string
-  subItems?: { label: string; href: string; icon?: any }[]
+  subItems?: { label: string; href: string; icon?: NavIcon }[]
 }
 
 const navItems: NavItem[] = [
@@ -132,10 +135,12 @@ export function DashboardSidebar() {
               )
             }
 
+            if (!item.href) return null;
+
             return (
               <Link
                 key={item.label}
-                href={item.href!}
+                href={item.href}
                 className={cn(
                   "group relative flex flex-col items-center justify-center gap-1.5 rounded-lg py-3 px-1 text-xs font-medium transition-all duration-200",
                   isActive

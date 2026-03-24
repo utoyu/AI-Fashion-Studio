@@ -1,6 +1,22 @@
 # 🕒 项目路线图与更新日志 (CHANGELOG.md)
 
-## [Unreleased] - 2026-03-10
+## [Unreleased] - 2026-03-24
+### 🛡️ 安全性强化 (Security)
+* **API 私钥保护**: 在 `lib/supabaseAdmin.ts` 中引入 `import 'server-only'` 保护，防止 Service Role Key 意外泄露到客户端 Bundle。
+* **日志脱敏**: 从 `lib/supabase.ts` 中移除了会打印至生产日志的 Supabase URL 诊断信息。
+* **类型安全收拢**: 为 Fal.ai 响应数据建立了精确的 `FalResponse` interface，对全站多处的 `any` 类型泛用（如 `sidebar.tsx` 及 `page.tsx` 中的组件 icon）进行了强类型约束回归。
+
+### 🚀 性能与稳定性 (Performance & Reliability)
+* **轮询内存泄露阻断**: 修复了 `useTaskPolling.ts` 中因为空 cleanup 函数导致的计时器游离问题，并彻底清除了获取进度时的闭包陷阱现象。
+* **防爆版状态存储**: 在 `useTaskStore` 增加了清理已完成任务 (`clearCompletedTasks`) 的能力，阻断了 `localStorage` 的无限膨胀隐患。
+* **防灾错机制**: 在 Prompt 转化中心 (`generate-prompt/route.ts`) 内，对大模型极其不稳定的 JSON 返回包裹了强制的外层 try-catch 防御。
+* **重传鲁棒性**: 本地存储引擎 `lib/storage.ts` 配置 `upsert: true`，完美消除网络抖动时导致重复推传的建键冲突报错。同时为云下图片资源加入了自动 MIME Type (基于标头与扩展名) 的探测逻辑。
+
+### 💄 用户体验与代码质量 (UX & DX)
+* **全局提示层重构**: 剥离了生硬的传统 `alert()` 弹框，将所有操作反馈收罗进优雅的 Sonner `toast()` 体系内。
+* **组件重渲染节流**: 修复了点击左侧物料时 `handleBlockClick` 的无尽级拉取现象，补齐了基于 `useCallback` 的引用维稳。并原生修复了右侧类别鉴权选择时 String/Array 的逻辑判断隐形红线。
+
+## [2026-03-10]
 ### 🚀 Features (新增功能)
 * **事件驱动架构 (Event-Driven Architecture) 上线:** 正式废弃前端直接请求生图 API 的同步阻塞模式。
 * **Supabase Realtime 接入:** 前端 `ManualRetouchPage` 成功集成 WebSocket 实时订阅，实现不刷新页面自动感知 AI 任务进度 (`pending` -> `processing` -> `completed`)。
